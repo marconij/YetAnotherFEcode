@@ -1,10 +1,10 @@
 function t = scale(t,s,dims)
-%SCALE Scale along specified dimensions for sparse tensors.
+%SCALE Scale along specified dimensions for sptensors.
 %
-%   Y = SCALE(X,S,DIMS) scales the sparse tensor X along the
+%   Y = SCALE(X,S,DIMS) scales the sptensor X along the
 %   dimension(s) specified in DIMS using the scaling data in S. If
 %   DIMS contains only one dimensions, then S can be a column
-%   vector. Otherwise, S should be a tensor or sparse tensor.
+%   vector. Otherwise, S should be a tensor or sptensor.
 %
 %   Examples
 %   X = ones(sptenrand([3 4 5], 10))
@@ -13,23 +13,11 @@ function t = scale(t,s,dims)
 %   S = tensor(1:12,[3 4]); Y = scale(X,S,[1 2])
 %   S = tensor(1:12,[3 4]); Y = scale(X,S,-3)
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'collapse_scale_doc.html')))">Documentation page for collapsing and scaling tensors</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','collapse_scale_doc.html')))">Documentation page for collapsing and scaling tensors</a>
 %
 %   See also SPTENSOR, SPTENSOR/COLLAPSE.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 dims = tt_dimscheck(dims,ndims(t));
 
@@ -51,4 +39,11 @@ switch(class(s))
         t.vals = t.vals .* s(t.subs(:,dims));
     otherwise
         error('Invalid scaling factor');
+end
+
+% Keep only nonzero values
+if issparse(t)
+    idx = find(t.vals);
+    t.subs = t.subs(idx,:);
+    t.vals = t.vals(idx);
 end

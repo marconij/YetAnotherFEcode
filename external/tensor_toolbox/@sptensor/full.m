@@ -1,20 +1,16 @@
-function B = full(A)
-%FULL Convert a sparse tensor to a (dense) tensor.
+function B = full(A,fillval)
+%FULL Convert a sptensor to a (dense) tensor.
 %
-%   B = FULL(A) converts a sptensor A to a (dense) tensor B.
+%   B = FULL(A) converts a sptensor A to a (dense) tensor B. If A is
+%   incomplete, then the missing values are NaN's.
+%
+%   B = FULL(A,0) fills the missing values with zero for an incomplete
+%   tensor.
 %
 %   See also SPTENSOR, TENSOR.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 % Extract the order and size of A
@@ -26,8 +22,12 @@ if isempty(siz)
     return;
 end
 
-% Create a dense zero tensor B that is the same size as A
-B = tensor(zeros([siz,1,1]),siz);
+% Create a dense zero or nan tensor B that is the same size as A
+if issparse(A) || (nargin > 1 && fillval == 0)
+    B = tensor(zeros([siz,1,1]),siz);
+else
+    B = tensor(nan([siz,1,1]),siz);
+end
 
 if isempty(A.subs)
     return;

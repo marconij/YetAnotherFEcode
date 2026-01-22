@@ -16,7 +16,7 @@ function subs = tt_sample_zeros(X,Xnzidx,nsamps,oversample,with_replacement)
 %
 %   See also SAMPLE_STRATIFIED.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 % Created by Tamara G. Kolda, Fall 2018. Includes work with
 % collaborators David Hong and Jed Duersch. 
@@ -29,13 +29,13 @@ nelx = prod(sz); % Number of entries in X
 nnzx = length(Xnzidx); % Number of Nonzeros in X
 nzrx = nelx - nnzx; % Number of Zeros in X
 
-if nargin < 3
+if nargin < 4
     oversample = 1.1;
 elseif oversample < 1.1
     error('Oversampling rate must be >= 1.1');
 end
 
-if nargin < 4
+if nargin < 5
    with_replacement = true;    
 end
 
@@ -84,7 +84,7 @@ end
 
 % Select out just the zeros
 tmpidx = tt_sub2ind64(sz, tmpsubs);
-iszero = ~builtin('_ismemberhelper',tmpidx,Xnzidx);
+iszero = ~ismembc(tmpidx,Xnzidx);
 tmpsubs = tmpsubs(iszero,:);
 
 % Trim back to desired number of samples

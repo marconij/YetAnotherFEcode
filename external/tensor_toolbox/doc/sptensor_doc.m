@@ -1,4 +1,13 @@
-%% Sparse tensors
+%% Sparse Tensors and Incomplete Tensors
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="tensor_types.html">Tensor Types</a> 
+% &#62;&#62; <a href="sptensor_doc.html">Sparse and Incomplete Tensors</a>
+% </p>
+% </html>
+%
 % MATLAB has no native ability to store sparse multidimensional arrays,
 % only sparse matrices. Moreover, the compressed sparse column storage
 % format for MATLAB sparse matrices is not readily adaptable to sparse
@@ -6,18 +15,30 @@
 % format. The |sptensor| class is best described in the following
 % reference:
 %
-% * B. W. Bader and T. G. Kolda. *Efficient MATLAB Computations with Sparse
-%   and Factored Tensors*, _SIAM J. Scientific Computing_ 30:205-231, 2007.
-%   <http:dx.doi.org/10.1137/060676489 DOI:10.1137/060676489>. <bibtex.html#TTB_Sparse [BibTeX]>
+% * B. W. Bader and T. G. Kolda. Efficient MATLAB Computations with Sparse
+%   and Factored Tensors, SIAM J. Scientific Computing, 30:205-231, 2007.
+%   <http:dx.doi.org/10.1137/060676489>. 
+%
+% As of Version 3.7, the |sptensor| class also supports *incomplete tensors*,
+% meaning that it can store tensors where most values are missing (a scarce
+% tensor). Only the known values and their subscripts are stored.
+% The |type| flag of the |sptensor| is set to |'incomplete'| rather 
+% than |'sparse'|. 
+%
+% A sparse |sptensor| is such that only its nonzero entries are stored, and
+% so every entry that is not explicitly stored is assumed to be zero.
+% In contrast, an incomplete |sptensor| is such that every entry that is
+% not explicitly stored is assumed to be missing, and so the value of
+% those entries is unknown. An incomplete |sptensor| must store zeros
+% explicitly; a sparse |sptensor| does not store zeros at all.
 %
 %% Creating a sptensor 
 % A sparse tensor can be created by passing in a list of subscripts and
 % values. For example, here we pass in three subscripts and a scalar value.
 % The resuling sparse tensor has three nonzero entries, and the size is the
 % size of the largest subscript in each dimension.
-rand('state',0); %<-- Setup for the script
-subs = [1,1,1;1,2,1;3,4,2]; %<-- Subscripts of the nonzeros.
-vals = [1; 2; 3]; %<-- The values of the nonzeros.
+subs = [1,1,1;1,2,1;3,4,2]; %<-- Subscripts of the nonzeros  
+vals = [1; 2; 3]; %<-- The values of the nonzeros
 X = sptensor(subs,vals) %<-- Create a sparse tensor with 3 nonzeros.
 %%
 X = sptensor(subs,vals,[3 5 2]) %<-- Or, specify the size explicitly.
@@ -36,33 +57,44 @@ X = sptensor(subs,2*ones(6,1),[4 4 4],myfun) %<-- Custom accumulation function.
 %% Creating a one-dimensional sptensor.
 X = sptensor([1;3;5],1,10) %<-- Same as X = sptensor([1;3;5],[1;1;1],1,10).
 %%
-X = sptenrand(50,5) %<-- A random, sparse, order-1 tensor with 5 nonzeros.
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,50,5) %<-- A random, sparse, order-1 tensor with 5 nonzeros.
 %% Creating an all-zero sptensor 
 X = sptensor([],[],[10 10 10]) %<-- Creates an all-zero tensor.
 %%
 X = sptensor([10 10 10]) %<-- Same as above.
 %% Constituent parts of a sptensor
-X = sptenrand([40 30 20],5); %<-- Create data.
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,[40 30 20],5); %<-- Create data.
 X.subs %<-- Subscripts of nonzeros.
 %%
 X.vals %<-- Corresponding nonzero values.
 %%
 X.size %<-- The size.
+%%
+X.type %<-- The type, which is 'sparse' or 'incomplete'
 %% Creating a sparse tensor from its constituent parts
-Y = sptensor(X.subs,X.vals,X.size) %<-- Copies X.
+Y = sptensor(X.subs,X.vals,X.size,[],X.type) %<-- Hard Way to Copy X
+%%
+Y = X %<-- Easy way to copy X
 %% Creating an empty sptensor
 % An empty constructor exists, primarily to support loads of previously 
 % saved data.
 Y = sptensor %<-- Create an empty sptensor.
-%% Use sptenrand to create a random sptensor
-X = sptenrand([10 10 10],0.01) %<-- Create a tensor with 1% nonzeroes.
+%% Use function to create a random sptensor
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,[10 10 10],0.01) %<-- Create a tensor with 1% nonzeroes.
 %%
 % It is also posible to specify the precise number of nonzeros rather than
 % a percentage.
-X = sptenrand([10 10 10],10) %<-- Create a tensor with 10 nonzeros.
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,[10 10 10],10) %<-- Create a tensor with 10 nonzeros.
 %% Use squeeze to remove singleton dimensions from a sptensor
 Y = sptensor([1 1 1; 2 1 1], 1, [2 1 1]) %<-- Create a sparse tensor.
 squeeze(Y) %<-- Remove singleton dimensions.
+%% Use squash to remove empty slices from a sptensor
+Y = sptensor([1 1 1; 3 3 3], [1; 3], [3 3 3]) %<-- Create a sparse tensor.
+squash(Y) %<-- Remove empty slices.
 %% Use full or tensor to convert a sptensor to a (dense) tensor
 X = sptensor([1 1 1; 2 2 2], [1; 1]); %<-- Create a sparse tensor.
 Y = full(X) %<-- Convert it to a (dense) tensor.
@@ -75,6 +107,7 @@ Y = double(X) %<-- Creates a MATLAB array.
 %% Use find to extract nonzeros from a tensor and then create a sptensor
 % The |find| command can be used to extract specific elements and then
 % convert those into a sptensor.
+rand('state',0); %<-- Reproducible random numbers.
 X = tensor(rand(5,4,2),[5 4 2]) %<-- Create a tensor.
 S = find(X > 0.9) %<-- Extract subscipts of values greater than 0.9.
 V = X(S) %<-- Extract the corresponding values.
@@ -116,16 +149,19 @@ X(30,40,20) = 7 %<-- Assign a single element.
 %%
 X([1,1,1;2,2,2]) = [1;1] %<-- Assign a list of elements.
 %%
-X(11:20,11:20,11:20) = sptenrand([10,10,10],10) %<-- Assign a subtensor.
+rand('state',0); %<-- Reproducible random numbers.
+X(11:20,11:20,11:20) = sptensor(@rand,[10,10,10],10) %<-- Assign a subtensor.
 %%
 X(31,41,21) = 4 %<-- Grows the size of the sptensor.
 %%
-X(111:120,111:120,111:120) = sptenrand([10,10,10],10) %<-- Grow more.
+rand('state',1); %<-- Reproducible random numbers.
+X(111:120,111:120,111:120) = sptensor(@rand,[10,10,10],10) %<-- Grow more.
 %% Use end as the last index.
 X(end-10:end,end-10:end,end-5:end)  %<-- Same as X(108:118,110:120,115:120)
 %% Use elemfun to manipulate the nonzeros of a sptensor
 % The function |elemfun| is similar to |spfun| for sparse matrices.
-X = sptenrand([10,10,10],3) %<-- Create some data.
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,[10,10,10],3) %<-- Create some data.
 %%
 Z = elemfun(X, @sqrt) %<-- Square root of every nonzero.
 %%
@@ -135,6 +171,7 @@ Z = elemfun(X, @(x) x~=0) %<-- Set every nonzero to one.
 %%
 Z = ones(X) %<-- An easier way to change every nonzero to one.
 %% Basic operations (plus, minus, times, etc.) on a sptensor
+rand('state',0); %<-- Reproducible random numbers.
 A = sptensor(tensor(floor(5*rand(2,2,2)))) %<-- Create data.
 B = sptensor(tensor(floor(5*rand(2,2,2)))) %<-- Create more data.
 %%
@@ -159,19 +196,56 @@ A./(A+B) %<-- Calls rdivide.
 %%
 A./B %<-- Uh-oh. Getting a divide by zero.
 %% Use permute to reorder the modes of a sptensor
-A = sptenrand([30 40 20 1], 5) %<-- Create data.
+rand('state',0); %<-- Reproducible random numbers.
+A = sptensor(@rand,[30 40 20 1], 5) %<-- Create data.
 %%
 permute(A,[4 3 2 1]) %<-- Reorder the modes.
 %%
 % Permute works correctly for a 1-dimensional sptensor.
-X = sptenrand(40,4) %<-- Create data.
+rand('state',0); %<-- Reproducible random numbers.
+X = sptensor(@rand,40,4) %<-- Create data.
 %%
 permute(X,1) %<-- Permute.
 %% Displaying a tensor
 % The function |disp| handles small and large elements appropriately, as
 % well as aligning the indices.
+rand('state',0); %<-- Reproducible random numbers.
 X = sptensor([1 1 1]); %<-- Create an empty sptensor. 
 X(1,1,1) = rand(1)*1e15; %<-- Insert a very big element.
 X(4,3,2) = rand(1)*1e-15; %<-- Insert a very small element.
 X(2,2,2) = rand(1); %<-- Insert a 'normal' element.
 disp(X)
+
+%% Creating an incomplete sptensor
+% An incomplete sptensor is created in the same way as a sparse sptensor,
+% but the |type| flag is set to |'incomplete'|. The values of the missing
+% elements are unknown. The size of the incomplete sptensor is the size of
+% the largest subscript in each dimension.
+subs = [1,1,1;2,2,2;3,4,2]; %<-- Subscripts of the known entries.
+vals = [1; 2; 0]; %<-- The values of the known entries.
+X = sptensor(subs,vals,[],[],'incomplete') %<-- Creates an incomplete sptensor.
+%%
+% The size can be specified explicitly if it is different from the max 
+% coordinates in each mode.
+X = sptensor(subs,vals,[3 5 2],[],'incomplete') %<-- Specify the size.
+
+%% Functions that work differently for 'incomplete' sptensors
+% 
+% * |double| returns a dense array with NaN for the missing entries.
+% * |full| returns a dense tensor with NaN for the missing entries.
+
+%% Functions not defined for 'incomplete' sptensors
+% The following functions are not defined for incomplete sptensors:
+%
+% * |and|, |not|, |or|, |xor|
+% * |contract|
+% * |eq|, |ne|
+% * |fibers|
+% * |ge|, |gt|, |le|, |lt|
+% * |innerprod|
+% * |minus|, |plus|
+% * |ldivide|, |mldivide|, |mrdivide|, |mtimes|, |rdivide|, |times|
+% * |mttkrp|, |ttm|, |ttt|, |ttv|
+% * |nvecs|
+% * |rrf|
+% * |spmatrix|

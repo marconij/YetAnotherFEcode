@@ -1,11 +1,20 @@
 %% GCP-OPT Examples with Amino Acids Dataset
 %
-% For more details, see <gcp_opt_doc.html Generalized CP Tensor
-% Decomposition>.
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="cp.html">CP Decompositions</a> 
+% &#62;&#62; <a href="gcp_opt_doc.html">GCP-OPT</a>
+% &#62;&#62; <a href="gcp_opt_amino_doc.html">GCP-OPT and Amino Acids Dataset</a>
+% </p>
+% </html>
+%
 
 %% Setup
 % We use the well known amino acids dataset for some tests. This data has
 % some negative values, but the factorization itself should be nonnegative.
+
+rng('default'); %<- Setting random seed for reproducibility of this script
 
 % Load the data
 load(fullfile(getfield(what('tensor_toolbox'),'path'),'doc','aminoacids.mat'))
@@ -39,7 +48,7 @@ fprintf('Fit: %g\n', fit(cnt));
 viz(M{cnt},'Figure',cnt,vizopts{:});
 
 %% GCP with Gaussian and Missing Data
-% What is some data is missing? 
+% What if some data is missing? 
 cnt = 3;
 
 % Proportion of missing data

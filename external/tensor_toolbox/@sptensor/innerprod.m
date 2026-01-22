@@ -9,17 +9,14 @@ function res = innerprod(X,Y)
 %
 %   See also SPTENSOR, KTENSOR/INNERPROD, TTENSOR/INNERPROD.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+if isa(X,'sptensor') && isincomplete(X)
+    error('Cannot handle incomplete tensors');
+end
+if isa(Y,'sptensor') && isincomplete(Y)
+    error('Cannot handle incomplete tensors');
+end
 
 % X is a sptensor
 if nnz(X) == 0 %There are no nonzero terms in X.
@@ -27,42 +24,40 @@ if nnz(X) == 0 %There are no nonzero terms in X.
     return
 end
 
-switch class(Y)
-    
-    case {'sptensor'}
-        if ~isequal(size(X),size(Y))
-            error('X and Y must be the same size.');
-        end
-        if nnz(Y) == 0 %There are no nonzero terms in Y.
-            res = 0;
-            return
-        end
-        if nnz(X) < nnz(Y);
-            [SX,VX] = find(X);
-            VY = extract(Y,SX);   %<-----VY = Y(SX);
-        else
-            [SY,VY] = find(Y);
-            VX = extract(X,SY);   %<-----VX = X(SY);
-        end
-        res = VY'*VX;
-        return;
-        
-    case {'tensor'}
-        if ~isequal(size(X),size(Y))
-            error('X and Y must be the same size.');
-        end
+if isa(Y,'sptensor')
+    if ~isequal(size(X),size(Y))
+        error('X and Y must be the same size.');
+    end
+    if nnz(Y) == 0 %There are no nonzero terms in Y.
+        res = 0;
+        return
+    end
+    if nnz(X) < nnz(Y);
         [SX,VX] = find(X);
-        VY = Y(SX,'extract');
-        res = VY'*VX;
-        return;
-        
-    case {'ktensor','ttensor'}
-        % Reverse arguments to call ktensor/ttensor implementation
-        res = innerprod(Y,X);
-        return;
-        
-    otherwise
-        error(['Inner product not available for class ' class(Y)]);
+        VY = extract(Y,SX);   %<-----VY = Y(SX);
+    else
+        [SY,VY] = find(Y);
+        VX = extract(X,SY);   %<-----VX = X(SY);
+    end
+    res = VY'*VX;
+    return;
+    
+elseif isa(Y,'tensor')
+    if ~isequal(size(X),size(Y))
+        error('X and Y must be the same size.');
+    end
+    [SX,VX] = find(X);
+    VY = Y(SX,'extract');
+    res = VY'*VX;
+    return;
+    
+elseif isa(Y,'ktensor') || isa(Y,'ttensor')
+    % Reverse arguments to call ktensor/ttensor implementation
+    res = innerprod(Y,X);
+    return;
+    
+else
+    error(['Inner product not available for class ' class(Y)]);
         
 end
 

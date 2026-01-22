@@ -1,5 +1,5 @@
 function disp(X,name)
-%DISP Command window display of a sparse tensor.
+%DISP Command window display of a sptensor.
 %
 %   DISP(X) displays the tensor without printing its name.
 %
@@ -7,19 +7,11 @@ function disp(X,name)
 %
 %   See also SPTENSOR, SPTENSOR/DISPLAY.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
-% Extract the number of nonzeros and number of dimensions
+
+% Extract the number of nonzeros/values and number of dimensions
 nz = nnz(X);
 
 if ~exist('name','var')
@@ -27,17 +19,22 @@ if ~exist('name','var')
 end
 
 if (nz == 0)
-    fprintf('%s is an all-zero sparse tensor of size %s\n',...
-        name, tt_size2str(X.size));
+    if issparse(X)
+        tmpstr = 'all-zero sparse tensor';
+    else
+        tmpstr = 'totally empty incomplete tensor';
+    end
+    fprintf('%s is an %s of size %s\n',...
+        name, tmpstr, tt_size2str(X.size));
     return;
 else
-    fprintf('%s is a sparse tensor of size %s with %d nonzeros\n',...
-        name, tt_size2str(X.size), nz);
+    fprintf('%s is a %s tensor of size %s with %d values\n',...
+        name, X.type, tt_size2str(X.size), nz);
 end
 
 % Stop insane printouts
 if (nz > 10000)
-    r = input('Are you sure you want to print all nonzeros? (Y/N) ','s');
+    r = input('Are you sure you want to print all values? (Y/N) ','s');
     if upper(r) ~= 'Y', return, end;
 end
 

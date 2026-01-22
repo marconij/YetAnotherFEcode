@@ -1,11 +1,20 @@
-%% Weighted optimization for CP tensor decomposition with incomplete data
-% We explain how to use the CP Weighted Optimization (CP-WOPR) method
-% implements in |cp_wopt|. The method is described in the following article:
+%% Weighted Optimization for CP Tensor Decomposition with Incomplete Data
 %
-% * E. Acar, D. M. Dunlavy, T. G. Kolda and M. Mørup, 
-% *Scalable Tensor Factorizations for Incomplete Data*, 
-% _Chemometrics and Intelligent Laboratory Systems_ 106(1):41-56, March 2011
-% (doi:10.1016/j.chemolab.2010.08.004) 
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="cp.html">CP Decompositions</a> 
+% &#62;&#62; <a href="cp_wopt_doc.html">CP-WOPT</a>
+% </p>
+% </html>
+%
+% We explain how to use the CP Weighted Optimization (CP-WOPT) method
+% implemented in |cp_wopt|. The method is described in the following article:
+%
+% * E. Acar, D. M. Dunlavy, T. G. Kolda and M. Mï¿½rup, 
+%   Scalable Tensor Factorizations for Incomplete Data, 
+%   Chemometrics and Intelligent Laboratory Systems, 106(1):41-56, 2011,
+%   http://dx.doi.org/10.1016/j.chemolab.2010.08.004.
 
 %% Third-party optimization software
 % The |cp_wopt| method uses third-party optimization software to do the
@@ -28,32 +37,33 @@
 
 %% Create an example problem with missing data. 
 % Here we have 25% missing data and 10% noise.   
-R = 2;
-info = create_problem('Size', [15 10 5], 'Num_Factors', R, ...
+rng('default'); % Reproducibility
+R1 = 2;
+info1 = create_problem('Size', [15 10 5], 'Num_Factors', R1, ...
     'M', 0.25, 'Noise', 0.10);
-X = info.Data;
-P = info.Pattern;
-M_true= info.Soln;
+X1 = info1.Data;
+W1 = info1.Pattern;
+M1_true= info1.Soln;
 
 %% Create initial guess using 'nvecs'
-M_init = create_guess('Data', X, 'Num_Factors', R, ...
+rng('default'); % Reproducibility
+M1_init = create_guess('Data', X1, 'Num_Factors', R1, ...
     'Factor_Generator', 'nvecs');
-
-
-
 
 %% Call the |cp_wopt| method
 % Here is an example call to the cp_opt method. By default, each iteration
 % prints the least squares fit function value (being minimized) and the
 % norm of the gradient. 
-[M,~,output] = cp_wopt(X, P, R, 'init', M_init);
+rng('default'); % Reproducibility
+[M1,~,output1] = cp_wopt(X1, W1, R1, 'init', M1_init);
 
 %% Check the output
 % It's important to check the output of the optimization method. In
 % particular, it's worthwhile to check the exit message for any problems.
 % The message |CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH| means that
 % it has converged because the function value stopped improving.
-exitmsg = output.ExitMsg
+exitmsg1 = output1.ExitMsg;
+display(exitmsg1);
 
 
 %% Evaluate the output
@@ -62,29 +72,33 @@ exitmsg = output.ExitMsg
 % [0,1]  with 1 indicating a perfect match. Because we have noise, we do
 % not expect the fit to be perfect. See <matlab:doc('ktensor/score') doc
 % score> for more details.
-scr = score(M,M_true)
+scr1 = score(M1,M1_true);
+display(scr1);
 
 %% Create a SPARSE example problem with missing data. 
 % Here we have 95% missing data and 10% noise.   
-R = 2;
-info = create_problem('Size', [150 100 50], 'Num_Factors', R, ...
-    'M', 0.95, 'Sparse_M', true, 'Noise', 0.10);
-X = info.Data;
-P = info.Pattern;
-M_true= info.Soln;
+rng(4); % Reproducibility
+R2 = 2;
+info2 = create_problem('Size', [150 100 50], 'Num_Factors', R2, ...
+    'M', 0.9, 'Sparse_M', true, 'Noise', 0.1);
+X2 = info2.Data;
+W2 = info2.Pattern;
+M2_true= info2.Soln;
 
 %% Create initial guess using 'nvecs'
-M_init = create_guess('Data', X, 'Num_Factors', R, ...
+rng('default'); % Reproducibility
+M2_init = create_guess('Data', X2, 'Num_Factors', R2, ...
     'Factor_Generator', 'nvecs');
 
 
 %% Call the |cp_wopt| method
-[M,~,output] = cp_wopt(X, P, R, 'init', M_init);
+rng('default'); % Reproducibility
+[M2,~,output2] = cp_wopt(X2, W2, R2, 'init', M2_init);
 
 %% Check the output
-exitmsg = output.ExitMsg
-
+exitmsg2 = output2.ExitMsg;
+display(exitmsg2);
 
 %% Evaluate the output
-scr = score(M,M_true)
-
+scr2 = score(M2,M2_true);
+display(scr2);

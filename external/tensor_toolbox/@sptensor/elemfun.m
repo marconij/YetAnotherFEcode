@@ -1,5 +1,5 @@
 function a = elemfun(a,fun)
-%ELEMFUN Manipulate the nonzero elements of a sparse tensor.
+%ELEMFUN Manipulate the elements of a sptensor.
 %
 %   X = ELEMFUN(X,@FUN) modifies the elements of X according to the
 %   function @FUN which should take and array and output an equally
@@ -13,24 +13,21 @@ function a = elemfun(a,fun)
 %
 %   See also SPTENSOR, SPFUN.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 
 if ~isa(a,'sptensor')
-    error('First argument must be a sparse tensor.');
+    error('First argument must be a sptensor.');
 end
 
 a.vals = fun(a.vals);
+
+if isincomplete(a) % Nothing left to do for an incomplete tensor
+    return
+end
+
 idx = find(a.vals);
 if isempty(idx)
     a.vals = [];

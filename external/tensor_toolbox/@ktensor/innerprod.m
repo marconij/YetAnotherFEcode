@@ -9,16 +9,8 @@ function res = innerprod(X,Y)
 %
 %   See also KTENSOR, KTENSOR/TTV
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 if ~isequal(size(X),size(Y))
@@ -26,27 +18,25 @@ if ~isequal(size(X),size(Y))
 end
 
 % X is a ktensor
-switch class(Y)
- 
-  case {'ktensor'}
+if isa(Y,'ktensor')
     M = X.lambda * Y.lambda';
     for n = 1:ndims(X)
         M = M .* (X.u{n}' * Y.u{n});
     end
     res = sum(M(:));
-    
-  case {'tensor','sptensor','ttensor'}
+
+elseif isa(Y,'tensor') || isa(Y,'sptensor') || isa(Y,'ttensor')
     R = length(X.lambda);
     vecs = cell(1,ndims(X));
     res = 0;
     for r = 1:R
-      for n = 1:ndims(X)
-        vecs{n} = X.u{n}(:,r);
-      end
-      res = res + X.lambda(r) * ttv(Y,vecs);
+        for n = 1:ndims(X)
+            vecs{n} = X.u{n}(:,r);
+        end
+        res = res + X.lambda(r) * ttv(Y,vecs);
     end
-    
-  otherwise
+
+else
     disp(['Inner product not available for class ' class(Y)]);
 end
 

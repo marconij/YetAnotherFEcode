@@ -1,22 +1,31 @@
 %% Generalized CP (GCP) Tensor Decomposition
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="cp.html">CP Decompositions</a> 
+% &#62;&#62; <a href="gcp_opt_doc.html">GCP-OPT</a>
+% </p>
+% </html>
+%
 % This document outlines usage and examples for the generalized CP (GCP)
 % tensor decomposition implmented in |gcp_opt|. 
 % GCP allows alternate objective functions besides sum of squared errors,
 % which is the standard for CP.
 % The code support both dense and sparse input tensors, but the sparse
 % input tensors require randomized optimization methods. For some examples,
-% see also <gcp_opt_amino_doc.html GCP-OPT Examples with Amino Acids
+% see also <gcp_opt_amino_doc.html GCP-OPT and Amino Acids
 % Dataset>.
 %
 % GCP is described in greater detail in the manuscripts: 
 %
-% * D. Hong, T. G. Kolda, J. A. Duersch.
-%   _Generalized Canonical Polyadic Tensor Decomposition_. 
-%   <http://arXiv.org/abs/1808.07452 arXiv:1808.07452>,
-%   2018.  To appear in SIAM Review, 2019.
-% * T. G. Kolda, D. Hong, J. Duersch. _Stochastic Gradients for
-%     Large-Scale Tensor Decomposition_, 2019.
-
+% * D. Hong, T. G. Kolda, J. A. Duersch, Generalized Canonical
+%   Polyadic Tensor Decomposition, SIAM Review, 62:133-163, 2020,
+%   <https://doi.org/10.1137/18M1203626>
+% * T. G. Kolda, D. Hong, Stochastic Gradients for Large-Scale Tensor
+%   Decomposition. SIAM J. Mathematics of Data Science, 2:1066-1095,
+%   2020, <https://doi.org/10.1137/19m1266265>
+%
 %% Basic Usage
 % The idea of GCP is to use alternative objective functions. As such, the
 % most important thing to specify is the objective function. 
@@ -90,7 +99,8 @@
 %
 % * |'factr'| - Tolerance on the change on the objective value. Defaults to
 % 1e7, which is multiplied by machine epsilon.
-% * |'pgtol'| - Projected gradient tolerance, defaults to 1e-5.
+% * |'pgtol'| - Projected gradient tolerance, defaults to 1e-4 times total
+% tensor size. 
 %
 % It can sometimes be useful to increase or decrease |pgtol| depending on
 % the objective function and size of the tensor.
@@ -169,84 +179,47 @@
 %% Example on Gaussian distributed 
 % We set up the example with known low-rank structure. Here |nc| is the
 % rank and |sz| is the size.
-clear
-rng(4)
-nc = 2; 
-sz = [50 60 70]; 
-info = create_problem('Size',sz,'Num_Factors',nc);
-X = info.Data;
-M_true = info.Soln;
-whos
+rng('default')
+nc1 = 2; 
+sz1 = [20 30 40]; 
+info1 = create_problem('Size',sz1,'Num_Factors',nc1);
+X1 = info1.Data;
+M1_true = info1.Soln;
+
 %%
 % Run GCP-OPT
-tic, [M1,M0,out] = gcp_opt(X,nc,'type','normal','printitn',10); toc
-fprintf('Final fit: %e (for comparison to f in CP-ALS)\n',1 - norm(X-full(M1))/norm(X));
-fprintf('Score: %f\n',score(M1,M_true));
+rng('default')
+tic, [M1,M1_0] = gcp_opt(X1,nc1,'type','normal','printitn',10); toc
+relfit1 = 1 - norm(X1-full(M1))/norm(X1);
+fprintf('Final fit: %e (for comparison to f in CP-ALS)\n',relfit1);
+fprintf('Score: %f\n',score(M1,M1_true));
 
 %%
 % Compare to CP-ALS, which should usually be faster
-tic, M2 = cp_als(X,nc,'init',tocell(M0),'printitn',1); toc
-fprintf('Objective function: %e (for comparison to f(x) in GCP-OPT)\n', norm(X-full(M2))^2/prod(size(X)));
-fprintf('Score: %f\n',score(M2,M_true));
+rng('default')
+tic, M1b = cp_als(X1,nc1,'init',M1_0,'printitn',1); toc
+err1b = norm(X1-full(M1b))^2;
+fprintf('Objective function: %e (for comparison to f(x) in GCP-OPT)\n', err1b);
+fprintf('Score: %f\n',score(M1b,M1_true));
 
 %%
 % Now let's try is with the ADAM functionality
-tic, [M3,~,out] = gcp_opt(X,nc,'type','normal','opt','adam','init',M0,'printitn',1); toc
-fprintf('Final fit: %e (for comparison to f in CP-ALS)\n',1 - norm(X-full(M1))/norm(X));
-fprintf('Score: %f\n',score(M3,M_true));
+rng('default')
+tic, M1c = gcp_opt(X1,nc1,'type','normal','opt','adam','init',M1_0,'printitn',1); toc
+relfit1c = 1 - norm(X1-full(M1c))/norm(X1);
+fprintf('Final fit: %e (for comparison to f in CP-ALS)\n',relfit1c);
+fprintf('Score: %f\n',score(M1c,M1_true));
 
-%% Create an example Rayleigh tensor model and data instance.
-% Consider a tensor that is Rayleigh-distribued. This means its entries are
-% all nonnegative. First, we generate such a tensor with low-rank
-% structure.
-clear
-rng(65)
-nc = 3;
-sz = [50 60 70];
-nd = length(sz);
-
-% Create factor matrices that correspond to smooth sinusidal factors
-U=cell(1,nd);
-for k=1:nd
-    V = 1.1 + cos(bsxfun(@times, 2*pi/sz(k)*(0:sz(k)-1)', 1:nc));
-    U{k} = V(:,randperm(nc));
-end
-M_true = normalize(ktensor(U));
-X = tenfun(@raylrnd, full(M_true));
-%%
-% Visualize the true solution
-viz(M_true, 'Figure', 1)
-
-%%
-% Run GCP-OPT
-tic, [M1,~,out] = gcp_opt(X,nc,'type','rayleigh','printitn',10); toc
-fprintf('Score: %f\n',score(M1,M_true));
-
-%%
-% Visualize the solution from GCP-OPT
-viz(M1, 'Figure', 2)
-
-%%
-% Now let's try is with the scarce functionality - this leaves out all but
-% 10% of the data!
-tic, [M2,~,out] = gcp_opt(X,nc,'type','rayleigh','opt','adam'); toc
-fprintf('Final fit: %e (for comparison to f in CP-ALS)\n',1 - norm(X-full(M1))/norm(X));
-fprintf('Score: %f\n',score(M2,M_true));
-
-%%
-% Visualize the solution with scarce
-viz(M2, 'Figure', 3)
 
 %% Boolean tensor. 
 % The model will predict the odds of observing a 1. Recall that the odds
 % related to the probability as follows. If $p$ is the probability adn $r$
 % is the odds, then $r = p / (1-p)$. Higher odds indicates a higher
 % probability of observing a one. 
-clear
 rng(7639)
-nc = 3; % Number of components
-sz = [50 60 70]; % Tensor size
-nd = length(sz); % Number of dimensions
+nc3 = 3; % Number of components
+sz3 = [50 60 70]; % Tensor size
+nd3 = length(sz3); % Number of dimensions
 
 %%
 % We assume that the underlying model tensor has factor matrices with only
@@ -256,74 +229,79 @@ nd = length(sz); % Number of dimensions
 % observing a 1.
 probrange = [0.01 0.99]; % Absolute min and max of probabilities
 oddsrange = probrange ./ (1 - probrange);
-smallval = nthroot(min(oddsrange)/nc,nd);
-largeval = nthroot(max(oddsrange)/nc,nd);
+smallval = nthroot(min(oddsrange)/nc3,nd3);
+largeval = nthroot(max(oddsrange)/nc3,nd3);
 
-A = cell(nd,1);
-for k = 1:nd
-    A{k} = smallval * ones(sz(k), nc);
+A3 = cell(nd3,1);
+for k = 1:nd3
+    A3{k} = smallval * ones(sz3(k), nc3);
     nbig = 5;
-    for j = 1:nc
-        p = randperm(sz(k));
-        A{k}(p(1:nbig),j) = largeval;
+    for j = 1:nc3
+        p = randperm(sz3(k));
+        A3{k}(p(1:nbig),j) = largeval;
     end
 end
-M_true = ktensor(A);
+M3_true = ktensor(A3);
+clear probrange oddsrange smallval largeval nbig p A3;
 
 %%
 % Convert K-tensor to an observed tensor
 % Get the model values, which correspond to odds of observing a 1
-Mfull = full(M_true); 
+Mfull3 = full(M3_true); 
 % Convert odds to probabilities
-Mprobs = Mfull ./ (1 + Mfull); 
+Mprobs3 = Mfull3 ./ (1 + Mfull3); 
 % Flip a coin for each entry, with the probability of observing a one
 % dictated by Mprobs 
-Xfull = 1.0*(tensor(@rand, sz) < Mprobs); 
+rng('default');
+Xfull3 = 1.0*(tensor(@rand, sz3) < Mprobs3); 
 % Convert to sparse tensor, real-valued 0/1 tensor since it was constructed
 % to be sparse
-X = sptensor(Xfull); 
-fprintf('Proportion of nonzeros in X is %.2f%%\n', 100*nnz(X) / prod(sz));
+X3 = sptensor(Xfull3); 
+fprintf('Proportion of nonzeros in X is %.2f%%\n', 100*nnz(X3) / prod(sz3));
 
 %%
 % Just for fun, let's visualize the distribution of the probabilities in
 % the model tensor. 
-histogram(Mprobs(:))
+histogram(Mprobs3(:))
 
 %%
-% Call GCP_OPT on the full tensor
-[M1,~,out] = gcp_opt(Xfull, nc, 'type', 'binary','printitn',25);
-fprintf('Final score: %f\n', score(M1,M_true));
+% Call GCP_OPT on the full tensor. Here we specify tighter tolerances.
+rng('default');
+M3_1 = gcp_opt(Xfull3, nc3, 'type', 'binary', 'printitn', 25, 'pgtol', 1e-6, 'factr', 1e4);
+fprintf('Final score: %f\n', score(M3_1,M3_true));
 
 %%
 % GCP-OPT as sparse tensor
 
-[M2,~,out] = gcp_opt(X, nc, 'type', 'binary');
-fprintf('Final score: %f\n', score(M2,M_true));
+rng('default');
+M3_2 = gcp_opt(X3, nc3, 'type', 'binary');
+fprintf('Final score: %f\n', score(M3_2,M3_true));
 
 
 %% Create and test a Poisson count tensor.
-nc = 3;
-sz = [80 90 100];
-nd = length(sz);
+nc4 = 3;
+sz4 = [80 90 100];
+nd4 = length(sz4);
 paramRange = [0.5 60];
-factorRange = paramRange.^(1/nd);
+factorRange = paramRange.^(1/nd4);
 minFactorRatio = 95/100;
 lambdaDamping = 0.8;
 rng(21);
-info = create_problem('Size', sz, ...
-    'Num_Factors', nc, ...
+info4 = create_problem('Size', sz4, ...
+    'Num_Factors', nc4, ...
     'Factor_Generator', @(m,n)factorRange(1)+(rand(m,n)>minFactorRatio)*(factorRange(2)-factorRange(1)), ...
     'Lambda_Generator', @(m,n)ones(m,1)*(lambdaDamping.^(0:n-1)'), ...
     'Sparse_Generation', 0.2);
 
-M_true = normalize(arrange(info.Soln));
-X = info.Data;
-viz(M_true, 'Figure',3);
-
+M4_true = normalize(arrange(info4.Soln));
+X4 = info4.Data;
+viz(M4_true, 'Figure',4);
+clear paramRange factorRange minFactorRatio lambdaDamping;
 %% Loss function for Poisson negative log likelihood with identity link.
 
 % Call GCP_OPT on sparse tensor
-[M1,M0,out] = gcp_opt(X, nc, 'type', 'count','printitn',25);
-fprintf('Final score: %f\n', score(M1,M_true));
+rng('default');
+M4 = gcp_opt(X4, nc4, 'type', 'count','printitn',25);
+fprintf('Final score: %f\n', score(M4,M4_true));
 
 

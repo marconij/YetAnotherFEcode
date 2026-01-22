@@ -1,21 +1,23 @@
 function a = subsref(t,s)
-%SUBSREF Subscripted reference for a sparse tensor.
+%SUBSREF Subscripted reference for a sptensor.
 %
-%   We can extract elements or subtensors from a sparse tensor in the
+%   We can extract elements or subtensors from a sptensor in the
 %   following ways.
 %
 %   Case 1a: y = X(i1,i2,...,iN), where each in is an index, returns a
 %   scalar.
 %
 %   Case 1b: Y = X(R1,R2,...,RN), where one or more Rn is a range and
-%   the rest are indices, returns a sparse tensor. The elements are
+%   the rest are indices, returns a sptensor. The elements are
 %   renumbered here as appropriate.
 %   
-%   Case 2a: V = X(S) or V = X(S,'extract'), where S is a p x n array
-%   of subscripts, returns a vector of p values.
+%   Case 2a: V = X(S), where S is a p x n array of subscripts, returns a
+%   vector of p values. If ndims(X)=1, use instead V = X(S,'extract') so
+%   that it knows this is extracting values rather than giving a set of
+%   indicies.
 %
-%   Case 2b: V = X(I) or V = X(I,'extract'), where I is a set of p
-%   linear indices, returns a vector of p values.
+%   Case 2b: V = X(I), where I is a set of p linear indices, returns a
+%   vector of p values. If ndims(X)=1, use V = X(I,'extract') instead.
 %
 %   Any ambiguity results in executing the first valid case. This
 %   is particularily an issue if ndims(X)==1. 
@@ -37,16 +39,8 @@ function a = subsref(t,s)
 %
 %   See also SPTENSOR, SPTENSOR/FIND, TENSOR/SUBSREF.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 switch s(1).type
@@ -62,8 +56,14 @@ switch s(1).type
                 a = tt_subsubsref(t.vals, s);
             case 'size'
                 a = tt_subsubsref(t.size, s);
+            case 'type'
+                a = tt_subsubsref(t.type, s);
             otherwise
-                error(['No such field: ', s(1).subs]);
+                if isprop(t, s(1).subs)
+                    a = builtin('subsref', t, s);
+                else
+                    error('No such property: %s', s(1).subs);
+                end
         end
         return;
 
@@ -107,18 +107,22 @@ switch s(1).type
             % Return a single double value for a zero-order sub-tensor
             if isempty(newsiz)
                 if isempty(vals)
-                    a = 0;
+                    if issparse(t) == 1                        
+                        a = 0;
+                    else
+                        a = nan;
+                    end
                 else
                     a = vals;
                 end
                 return;
             end
             
-            % Assemble the resulting sparse tensor
+            % Assemble the resulting sptensor
             if isempty(subs)
-                a = sptensor([],[],sz(kpdims));
+                a = sptensor([], [], sz(kpdims), [], t.type);
             else
-                a = sptensor(subs(:,kpdims), vals, sz(kpdims));
+                a = sptensor(subs(:,kpdims), vals, sz(kpdims), [], t.type);
             end
             return;
         end

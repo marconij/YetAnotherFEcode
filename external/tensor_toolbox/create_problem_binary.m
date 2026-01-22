@@ -19,7 +19,7 @@ function [X,Mtrue,info] = create_problem_binary(sz,r,varargin)
 %
 %   See also: GCP_OPT, CREATE_PROBLEM.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 % Created by Tamara G. Kolda, Fall 2018. Includes work with
 
@@ -183,7 +183,7 @@ if spgen
     end
     if nlow > 0
         % Choose that many indicies
-        losubs = tt_sample_zeros(X, tt_sub2ind(sz,hisubs), nlow, 1.1, false);
+        losubs = tt_sample_zeros(X, tt_sub2ind64(sz,hisubs), nlow, 1.1, false);
         X(losubs) = 1;
     end
     if verbosity > 1

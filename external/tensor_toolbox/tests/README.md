@@ -7,9 +7,11 @@ Name each test file as `Test_Something.m`.
 r=runtests; % Runs all tests
 table(r) % View results
 r=runtests(Test_Somthing); % Runs just the tests in that file
-r=runtests('Test_NewTTM','ProcedureName','Compare','Verbosity',4); % Particular tests
+r=runtests('Test_NewTTM/ProcedureName'); % Particular test
 ```
 
+## Special Test
+More expensive tests for algorithms are inside the folder special_tests.
 
 ## Creating New Tests
 Copy one of the existing tests as a guide and modify to do tests relvant for the 

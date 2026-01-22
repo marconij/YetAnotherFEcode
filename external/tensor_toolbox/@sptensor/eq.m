@@ -3,21 +3,11 @@ function z = eq(x,y)
 %
 %   A == B compares the elements of A and B for equality. The arguments can
 %   be a pair of sptensors, an sptensor and a tensor, or an sptensor and a
-%   scalar.  Regardless, the result is always returned as a sparse tensor.
+%   scalar.  Regardless, the result is always returned as a sptensor.
 %
 %   See also SPTENSOR.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 %% Observations for sparse matrix case.
 % The result of a == 5 is sparse.
@@ -47,15 +37,19 @@ if ~isequal(x.size,y.size)
     error('Size mismatch');
 end
 
-% Case 2a: Two sparse tensors
+% Case 2a: Two sptensors
 if isa(x,'sptensor') && isa(y,'sptensor')
 
-    % Find where their zeros intersect
-    xzerosubs = setdiff(allsubs(x),x.subs,'rows');
-    yzerosubs = setdiff(allsubs(y),y.subs,'rows');
-    zzerosubs = intersect(xzerosubs,yzerosubs,'rows');
-    
-    % find where their nonzeros intersect 
+    % Find where their zeros/known values intersect
+    if x.type ~= y.type
+        zzerosubs = [];
+    else
+        xzerosubs = setdiff(allsubs(x),x.subs,'rows');
+        yzerosubs = setdiff(allsubs(y),y.subs,'rows');
+        zzerosubs = intersect(xzerosubs,yzerosubs,'rows');
+    end
+
+    % find where their nonzeros/known values intersect 
     [nzsubs,ix,iy] = intersect(x.subs,y.subs,'rows');
     znzsubs = nzsubs(x.vals(ix) == y.vals(iy),:);
 
@@ -69,8 +63,14 @@ end
 % Case 2b: One dense tensor
 if isa(y,'tensor')
 
+    if issparse(x) == 1
+        targetval = 0;
+    else
+        targetval = nan;
+    end
+
     % Find where their zeros intersect
-    yzerosubs = find(y == 0);
+    yzerosubs = find(y == targetval);
     zzerosubs = yzerosubs(extract(x,yzerosubs) == 0,:);
 
     % Find where their nonzeros intersect 

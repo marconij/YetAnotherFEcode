@@ -28,18 +28,7 @@ function c = ttt(varargin)
 %
 %   See also SPTENSOR, TENSOR/TTT, SPTENSOR/TTV, SPTENSOR/TTM.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
-
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 %%%%%%%%%%%%%%%%%%%%%%
 %%% ERROR CHECKING %%%
@@ -56,6 +45,9 @@ if ~isa(varargin{1}, 'sptensor')
 else
     a = varargin{1};
 end
+if isincomplete(a)
+    error('Cannot handle incomplete tensors');
+end
 
 % Check the second argument
 if ~isa(varargin{2}, 'sptensor')
@@ -63,6 +55,10 @@ if ~isa(varargin{2}, 'sptensor')
 else
     b = varargin{2};
 end
+if isincomplete(b)
+    error('Cannot handle incomplete tensors');
+end
+
 
 % Optional 3rd argument
 if nargin >= 3
@@ -152,7 +148,7 @@ end
 % If cc is a row vector, then transpose to work as a column vector
 % (otherwise 'find' returns row vectors)
 if size(cc,1) == 1
-    [jj,ii,newvals] = find(cc');
+    [jj,ii,newvals] = find(cc.');
 else
     [ii,jj,newvals] = find(cc);
 end

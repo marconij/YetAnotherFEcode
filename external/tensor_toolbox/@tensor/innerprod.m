@@ -13,36 +13,24 @@ function res = innerprod(X,Y)
 %
 %   See also TENSOR, SPTENSOR/INNERPROD, KTENSOR/INNERPROD, TTENSOR/INNERPROD
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 % X is a tensor
-switch class(Y)
- 
-  case {'tensor'}
+if isa(Y,'tensor')
     % No need for same size check because it is implicit in the inner
-    % product below. 
+    % product below.
     if ~isequal(size(X), size(Y))
         error('TTB:UnequalSize', 'X and Y must be the same size');
     end
     x = reshape(X.data, 1, numel(X.data));
     y = reshape(Y.data, numel(Y.data), 1);
     res = x*y;
-    
-  case {'sptensor','ktensor','ttensor'}
+
+elseif isa(Y,'sptensor') || isa(Y,'ktensor') || isa(Y,'ttensor')
     % Reverse arguments to call specialized code
-    res = innerprod(Y,X);  
- 
-  otherwise
+    res = innerprod(Y,X);
+
+else
     disp(['Inner product not available for class ' class(Y)]);
 
 end

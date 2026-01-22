@@ -3,7 +3,7 @@ function [T,Uinit] = tucker_als(X,R,varargin)
 %
 %   T = TUCKER_ALS(X,R) computes the best rank-(R1,R2,..,Rn)
 %   approximation of tensor X, according to the specified dimensions
-%   in vector R.  The input X can be a tensor, sptensor, ktensor, or
+%   in vector R. The input X can be a tensor, sptensor, ktensor, or
 %   ttensor.  The result returned in T is a ttensor.
 %
 %   T = TUCKER_ALS(X,R,'param',value,...) specifies optional parameters and
@@ -25,13 +25,11 @@ function [T,Uinit] = tucker_als(X,R,varargin)
 %   U0 = {rand(5,2),rand(4,2),[]}; %<-- Initial guess for factors of T
 %   T = tucker_als(X,2,'dimorder',[3 2 1],'init',U0);
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'tucker_als_doc.html')))">Documentation page for Tucker-ALS</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','tucker_als_doc.html')))">Documentation page for Tucker-ALS</a>
 %
 %   See also HOSVD, TTENSOR, TENSOR, SPTENSOR, KTENSOR.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
 % Extract number of dimensions and norm of X.
