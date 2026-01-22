@@ -198,6 +198,62 @@ classdef ContinuumElement < Element
             end
         end
         
+        function [K] = stiffness_matrix(self)
+            X = self.quadrature.X;
+            W = self.quadrature.W;
+            K = self.initialization.K;
+            % F = self.initialization.F;
+            C = self.initialization.C;
+            H = self.initialization.H;
+            % Afun = self.initialization.Afun; % fun: (th) vector -> matrix (A)
+            % Sfun = self.initialization.Sfun; % fun: (s)  tensor -> voigt (S)
+            for ii = 1:length(W)
+                Xi = X(:,ii);   % quadrature points
+                we = W(ii);     % quadrature weights
+                [G,detJ,~] = shape_function_derivatives(self, Xi);
+                % second Piola-Kirchhoff stress tensor
+                B = H*G;
+                % functions to integrate over volume
+                int_K1 = B'*C*B;
+                int_K = int_K1*detJ;
+                % integration of K through Gauss quadrature
+                K = K + we*int_K;
+            end
+        end
+        
+        function [K] = geometric_stiffness_matrix(self,x)
+            displ = self.extract_element_data(x);
+            X = self.quadrature.X;
+            W = self.quadrature.W;
+            K = self.initialization.K;
+            % F = self.initialization.F;
+            C = self.initialization.C;
+            H = self.initialization.H;
+            % Afun = self.initialization.Afun; % fun: (th) vector -> matrix (A)
+            Sfun = self.initialization.Sfun; % fun: (s)  tensor -> voigt (S)
+            for ii = 1:length(W)
+                Xi = X(:,ii);   % quadrature points
+                we = W(ii);     % quadrature weights
+                [G,detJ,dH] = shape_function_derivatives(self, Xi);
+                th  = G*displ;
+                % A = Afun(th);
+                % Green Strain tensor
+                % E = (H + 1/2*A)*th;
+                E = H*th; % linear
+                % second Piola-Kirchhoff stress tensor
+                s = C*E;        % stress tensor
+                S = Sfun(s);    % stress vector (voigt)
+                % B = H*G;
+                % functions to integrate over volume
+                % int_K1 = B'*C*B;
+                HSH = dH'*S*dH;
+                int_Ks = kron(HSH, eye(self.nDim));
+                int_K = int_Ks*detJ;
+                % integration of K through Gauss quadrature
+                K = K + we*int_K;
+            end
+        end
+        
         function xe = extract_element_data(self,x)
             % x is a vector of full DOFs
             index = get_index(self.nodeIDs,self.nDOFPerNode);

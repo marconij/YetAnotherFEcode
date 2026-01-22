@@ -74,7 +74,7 @@ classdef TriShellElement < Element
         end        
         
         function update_transformation_matrix(self)
-            T = speye(18,18);
+            T = eye(18,18);
             R = rotation_matrix(self.nodes);
             T(1:3,1:3) = R;
             T(4:6,4:6) = R;

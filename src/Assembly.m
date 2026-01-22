@@ -84,6 +84,10 @@ classdef Assembly < handle
             Kd = self.matrix('stiffness_derivative',varargin{:});
         end
 
+        function [K] = geometric_stiffness_matrix(self, varargin)
+            K = self.matrix('geometric_stiffness_matrix',varargin{:});
+        end
+
         function [K] = matrix(self,elementMethodName,varargin)
             % This function assembles a generic finite element matrix from
             % its element level counterpart.
@@ -259,13 +263,24 @@ classdef Assembly < handle
             elementSet = find(elementWeights);
             
             % Computing element level contributions
-
             parfor j = elementSet
                 thisElement = Elements(j).Object;
                 
-                [Te, globalSUBS] = thisElement.(elementMethodName)(inputs{:});
+                % OLD VERSION (using sparsify)
+                % [Te,globalSUBS] = thisElement.(elementMethodName)(inputs{:});
+                % [subs{j}, T{j}] = sparsify(elementWeights(j) * Te, globalSUBS, sumDIMS);
+                
+                Te = thisElement.(elementMethodName)(inputs{:});
+                Te = sptensor(Te);
 
-                [subs{j}, T{j}] = sparsify(elementWeights(j) * Te, globalSUBS, sumDIMS);
+                % global DOFs associated to the element nodes
+                iDOFs_global = Elements(j).Object.iDOFs;
+
+                % get local subs and map them to global subs
+                subs{j} = iDOFs_global(Te.subs); 
+
+                % save values
+                T{j} = elementWeights(j) * Te.vals;
             end
 
             subs = vertcat(subs{:});
@@ -427,6 +442,10 @@ classdef Assembly < handle
         
         function M = mass_matrix_uniform(self, varargin)
             M = self.matrix_uniform('mass_matrix',varargin{:});
+        end
+        
+        function K = stiffness_matrix_uniform(self, varargin)
+            K = self.matrix_uniform('stiffness_matrix',varargin{:});
         end
 
         function [K, f] = tangent_stiffness_and_force_uniform(self, varargin)
