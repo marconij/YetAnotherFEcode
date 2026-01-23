@@ -11,11 +11,11 @@ function G = tenrandblk(bsz, bns, verbose)
 %   1-sum(BNS).  
 %
 %   See <a
-%   href="matlab:p=what('tensor_toolbox');web(strcat('file:',p.path,'/doc/html/T5_hosvd_algorithm_doc.html'))">example usage</a>.
+%   href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','hosvd_doc.html')))">example usuage in the documentation page for HOSVD</a>.
 %
 %   See also CREATE_PROBLEM
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 %% Check inputs
 

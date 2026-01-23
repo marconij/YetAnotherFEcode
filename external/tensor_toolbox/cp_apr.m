@@ -6,8 +6,10 @@ function [M, Minit, output] = cp_apr(X, R, varargin)
 %   most appropriate for sparse count data (i.e., nonnegative integer
 %   values) because it uses Kullback-Liebler divergence.  The input X can
 %   be a tensor or sptensor. The result M is a ktensor.  Input data must be
-%   nonnegative, and the computed ktensor factors are all nonnegative.   
-%
+%   nonnegative (and is ideally integer), and the computed ktensor factors 
+%   are all nonnegative. The model is fit by minimizing the negative
+%   log-likelihood (shifted by a constant).  
+% 
 %   Different algorithm variants are available (selected by the 'alg'
 %   parameter):
 %     'pqnr' - row subproblems by projected quasi-Newton (default)
@@ -23,7 +25,7 @@ function [M, Minit, output] = cp_apr(X, R, varargin)
 %      'stoptol'       - Tolerance on the overall KKT violation {1.0e-4}
 %      'stoptime'      - Maximum number of seconds to run {1e6}
 %      'maxiters'      - Maximum number of iterations {1000}
-%      'init'          - Initial guess [{'random'}|ktensor]
+%      'init'          - Initial guess [{'random'}|ktensor|cell array]
 %      'maxinneriters' - Maximum inner iterations per outer iteration {10}
 %      'epsDivZero'    - Safeguard against divide by zero {1.0e-10}
 %      'printitn'      - Print every n outer iterations; 0 for none {1}
@@ -49,9 +51,11 @@ function [M, Minit, output] = cp_apr(X, R, varargin)
 %   [M,M0,out] = CP_APR(...) also returns additional output:
 %      out.kktViolations - maximum KKT violation per iteration
 %      out.nInnerIters   - number of inner iterations per outer iteration
-%      out.obj           - final negative log-likelihood objective
+%      out.obj           - final objective (shifed neg. log-likelihood)
 %      out.ttlTime       - time algorithm took to converge or reach max
 %      out.times         - cumulative time through each outer iteration
+%      out.fnVals        - objective at each *output* iteration (else nan)
+%
 %    If algorithm is 'mu':
 %      out.nViolations   - number of factor matrices needing complementary
 %                          slackness adjustment per iteration
@@ -60,22 +64,24 @@ function [M, Minit, output] = cp_apr(X, R, varargin)
 %
 %   REFERENCES: 
 %   * E. C. Chi and T. G. Kolda. On Tensors, Sparsity, and Nonnegative
-%     Factorizations, SIAM J. Matrix Analysis,  33(4):1272-1299, Dec. 2012,
+%     Factorizations, SIAM J. Matrix Analysis, 33(4):1272-1299, Dec. 2012,
 %     http://dx.doi.org/10.1137/110859063  
 %   * S. Hansen, T. Plantenga and T. G. Kolda, Newton-Based Optimization
 %     for Kullback-Leibler Nonnegative Tensor Factorizations, 
 %     Optimization Methods and Software, 2015, 
 %     http://dx.doi.org/10.1080/10556788.2015.1009977
 %
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','cp_apr_doc.html')))">Documentation page for CP-APR</a>
+%
 %   See also CP_ALS, KTENSOR, TENSOR, SPTENSOR.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
 %% Set the algorithm choice and initial guess from input or defaults.
 params = inputParser;
 params.addParameter('alg', 'pqnr', @(x) (ismember(x,{'mu','pdnr','pqnr'})) );
-params.addParameter('init','random', @(x) (isa(x,'ktensor') || ismember(x,{'random'})) );
+params.addParameter('init','random');
 params.KeepUnmatched = true;
 params.parse(varargin{:});
 
@@ -96,6 +102,10 @@ if (size(tmp,1) > 0)
 end
 
 %% Set up an initial guess for the factor matrices.
+if iscell(Minit)
+    Minit = ktensor(Minit);
+end
+
 if isa(Minit,'ktensor')
     % User provided an initial ktensor; validate it.
 
@@ -159,9 +169,8 @@ function [M, out] = tt_cp_apr_pqnr(X, R, Minit, varargin)
 %   using a quasi-Newton Hessian approximation.
 %   The function is typically called by cp_apr.
 %
-%   The model is solved by nonlinear optimization, and the code literally
-%   minimizes the negative of log-likelihood.  However, printouts to the
-%   console reverse the sign to show maximization of log-likelihood.
+%   The model is solved by nonlinear optimization, minimizing shifted 
+%   negative log-likelihood.  
 %
 %   The function call can specify optional parameters and values.
 %   Valid parameters and their default values are:
@@ -182,8 +191,7 @@ function [M, out] = tt_cp_apr_pqnr(X, R, Minit, varargin)
 %      out.kktViolations - maximum KKT violation per iteration
 %      out.nInnerIters   - number of inner iterations per outer iteration
 %      out.nZeros        - number of factor elements equal to zero per iteration
-%      out.obj           - final log-likelihood objective
-%                          (minimization objective is actually -1 times this)
+%      out.obj           - final objective (shifted neg. log-likelihood)
 %      out.ttlTime       - time algorithm took to converge or reach max
 %      out.times         - cumulative time through each outer iteration
 %
@@ -197,13 +205,6 @@ function [M, out] = tt_cp_apr_pqnr(X, R, Minit, varargin)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Set algorithm parameters from input or by using defaults.
@@ -260,14 +261,36 @@ end
 
 % Initialize output arrays.
 fnEvals = zeros(maxOuterIters,1);
-fnVals = zeros(maxOuterIters,1);
+fnVals = nan(maxOuterIters,1);
 kktViolations = -ones(maxOuterIters,1);
 nInnerIters = zeros(maxOuterIters,1);
 nzeros = zeros(maxOuterIters,1);
 times = zeros(maxOuterIters,1);
 
 if (printOuterItn > 0)
-    fprintf('\nCP_PQNR (alternating Poisson regression using quasi-Newton)\n');
+    fprintf('\nCP_APR:\n');
+    fprintf('\n');
+    fprintf(' Tensor size = %s, Approximation Rank = %d\n', mat2str(size(X)), R);
+    if isa(X,'sptensor')
+        nnonzeros = nnz(X);
+        tsz = prod(size(X));
+        fprintf(' Tensor type: sparse with %d (%.2g%%) nonzeros \n', ...
+            nnonzeros, 100*nnonzeros/tsz);
+        clear nnonzeros tsz;
+    else
+        fprintf(' Tensor type: %s\n', class(X));
+    end
+    fprintf(' alg = ''pqnr'' (quasi-Newton)\n');
+    fprintf(' stoptol = %g, stoptime = %g\n', stoptol, stoptime);
+    fprintf(' maxiters = %d, maxinneriters = %d\n', ...
+            maxOuterIters, maxInnerIters);
+    fprintf(' epsDivZero = %g, epsActive = %g\n', epsDivZero, epsActSet);
+    if (isSparse)
+        fprintf(' precompinds = %d\n', precomputeSparseIndices);
+    else
+        fprintf(' precompinds = false (dense tensor)\n');
+    end 
+    fprintf('\n');
 end
 dispLineWarn = (printInnerItn > 0);
 
@@ -279,7 +302,7 @@ if (isSparse && precomputeSparseIndices)
     % Precompute sparse index sets for all the row subproblems.
     % Takes more memory but can cut execution time significantly in some cases.
     if (printOuterItn > 0)
-        fprintf('  Precomputing sparse index sets...');
+        fprintf(' Precomputing sparse index sets...');
     end
     sparseIx = cell(N);
     for n = 1:N
@@ -512,7 +535,7 @@ t_stop = toc;
 
 %% Clean up final result and set output items.
 M = normalize(M,'sort',1);
-loglike = tt_loglikelihood(X,M);
+obj = -tt_loglikelihood(X,M);
 
 if (printOuterItn > 0)
     % For legacy reasons, compute "fit", the fraction explained by the model.
@@ -522,7 +545,7 @@ if (printOuterItn > 0)
     fit = 1 - (normresidual / normX);
 
     fprintf('===========================================\n');
-    fprintf(' Final log-likelihood = %e \n', loglike);
+    fprintf(' Final f = %e \n', obj);
     fprintf(' Final least squares fit = %e \n', fit);
     fprintf(' Final KKT violation = %7.7e\n', kktViolations(iter));
     fprintf(' Total inner iterations = %d\n', sum(nInnerIters));
@@ -531,7 +554,7 @@ end
 
 out = struct;
 out.params = params.Results;
-out.obj = loglike;
+out.obj = obj;
 out.kktViolations = kktViolations(1:iter);
 out.fnVals = fnVals(1:iter);
 out.fnEvals = fnEvals(1:iter);
@@ -653,9 +676,8 @@ function [M, out] = tt_cp_apr_pdnr(X, R, Minit, varargin)
 %   using a Hessian of size R^2.
 %   The function is typically called by cp_apr.
 %
-%   The model is solved by nonlinear optimization, and the code literally
-%   minimizes the negative of log-likelihood.  However, printouts to the
-%   console reverse the sign to show maximization of log-likelihood.
+%   The model is solved by nonlinear optimization, minimizing shifted
+%   negative log-likelihood.
 %
 %   The function call can specify optional parameters and values.
 %   Valid parameters and their default values are:
@@ -677,8 +699,7 @@ function [M, out] = tt_cp_apr_pdnr(X, R, Minit, varargin)
 %      out.kktViolations - maximum KKT violation per iteration
 %      out.nInnerIters   - number of inner iterations per outer iteration
 %      out.nZeros        - number of factor elements equal to zero per iteration
-%      out.obj           - final log-likelihood objective
-%                          (minimization objective is actually -1 times this)
+%      out.obj           - final objective, shifted neg. log-likelihood 
 %      out.ttlTime       - time algorithm took to converge or reach max
 %      out.times         - cumulative time through each outer iteration
 %
@@ -692,13 +713,6 @@ function [M, out] = tt_cp_apr_pdnr(X, R, Minit, varargin)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Set algorithm parameters from input or by using defaults.
@@ -755,7 +769,7 @@ else
 end
 
 % Initialize output arrays.
-fnVals = zeros(maxOuterIters,1);
+fnVals = nan(maxOuterIters,1);
 fnEvals = zeros(maxOuterIters,1);
 kktViolations = -ones(maxOuterIters,1);
 nInnerIters = zeros(maxOuterIters,1);
@@ -763,7 +777,30 @@ nzeros = zeros(maxOuterIters,1);
 times = zeros(maxOuterIters,1);
 
 if (printOuterItn > 0)
-    fprintf('\nCP_PDNR (alternating Poisson regression using damped Newton)\n');
+    fprintf('\nCP_APR:\n');
+    fprintf('\n');
+    fprintf(' Tensor size = %s, Approximation Rank = %d\n', mat2str(size(X)), R);
+    if isa(X,'sptensor')
+        nnonzeros = nnz(X);
+        tsz = prod(size(X));
+        fprintf(' Tensor type: sparse with %d (%.2g%%) nonzeros \n', ...
+            nnonzeros, 100*nnonzeros/tsz);
+        clear nnonzeros tsz;
+    else
+        fprintf(' Tensor type: %s\n', class(X));
+    end
+    fprintf(' alg = ''pdnr'' (damped Newton)\n');
+    fprintf(' stoptol = %g, stoptime = %g\n', stoptol, stoptime);
+    fprintf(' maxiters = %d, maxinneriters = %d\n', ...
+            maxOuterIters, maxInnerIters);
+    fprintf(' epsDivZero = %g, epsActive = %g\n', epsDivZero, epsActSet);
+    fprintf(' mu0 = %g, inexact = %d\n', mu0, inexactNewton);
+    if (isSparse)
+        fprintf(' precompinds = %d\n', precomputeSparseIndices);
+    else
+        fprintf(' precompinds = false (dense tensor)\n');
+    end
+    fprintf('\n');
 end
 dispLineWarn = (printInnerItn > 0);
 
@@ -775,7 +812,7 @@ if (isSparse && precomputeSparseIndices)
     % Precompute sparse index sets for all the row subproblems.
     % Takes more memory but can cut execution time significantly in some cases.
     if (printOuterItn > 0)
-        fprintf('  Precomputing sparse index sets...');
+        fprintf(' Precomputing sparse index sets...');
     end
     sparseIx = cell(N);
     for n = 1:N
@@ -974,7 +1011,7 @@ t_stop = toc;
 
 %% Clean up final result and set output items.
 M = normalize(M,'sort',1);
-loglike = tt_loglikelihood(X,M);
+obj = -tt_loglikelihood(X,M);
 
 if (printOuterItn > 0)
     % For legacy reasons, compute "fit", the fraction explained by the model.
@@ -984,7 +1021,7 @@ if (printOuterItn > 0)
     fit = 1 - (normresidual / normX);
 
     fprintf('===========================================\n');
-    fprintf(' Final log-likelihood = %e \n', loglike);
+    fprintf(' Final f = %e \n', obj);
     fprintf(' Final least squares fit = %e \n', fit);
     fprintf(' Final KKT violation = %7.7e\n', kktViolations(iter));
     fprintf(' Total inner iterations = %d\n', sum(nInnerIters));
@@ -993,7 +1030,7 @@ end
 
 out = struct;
 out.params = params.Results;
-out.obj = loglike;
+out.obj = obj;
 out.kktViolations = kktViolations(1:iter);
 out.fnEvals = fnEvals(1:iter);
 out.fnVals = fnVals(1:iter);
@@ -1158,7 +1195,7 @@ function [M, output] = tt_cp_apr_mu(X, R, Minit, varargin)
 %      out.nInnerIters   - number of inner iterations per outer iteration
 %      out.nViolations   - number of factor matrices needing complementary
 %                          slackness adjustment per iteration
-%      out.obj           - final log-likelihood objective
+%      out.obj           - final objective, shifted neg. log-likelihood 
 %      out.ttlTime       - time algorithm took to converge or reach max
 %      out.times         - cumulative time through each outer iteration
 %
@@ -1171,13 +1208,6 @@ function [M, output] = tt_cp_apr_mu(X, R, Minit, varargin)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Set algorithm parameters from input or by using defaults.
@@ -1209,32 +1239,8 @@ printOuterItn = params.Results.printitn;
 printInnerItn = params.Results.printinneritn;
 kktViolations = -ones(maxOuterIters,1);
 nInnerIters   = zeros(maxOuterIters,1);
+fnVals       = nan(maxOuterIters,1);
 times         = zeros(maxOuterIters,1);
-
-%% Set up and error checking on initial guess for U.
-if isa(Minit,'ktensor')
-    if ndims(Minit) ~= N
-        error('Initial guess does not have the right number of dimensions');
-    end
-    
-    if ncomponents(Minit) ~= R
-        error('Initial guess does not have the right number of components');
-    end
-    
-    for n = 1:N
-        if size(Minit,n) ~= size(X,n)
-            error('Dimension %d of the initial guess is the wrong size',n);
-        end
-    end
-elseif strcmp(Minit,'random')
-    F = cell(N,1);
-    for n = 1:N
-        F{n} = rand(size(X,n),R);
-    end
-    Minit = ktensor(F);
-else
-    error('The selected initialization method is not supported');
-end
 
 
 %% Set up for iterations - initializing M and Phi.
@@ -1243,7 +1249,25 @@ Phi = cell(N,1);
 kktModeViolations = zeros(N,1);
 
 if printOuterItn > 0
-  fprintf('\nCP_APR:\n');
+    fprintf('\nCP_APR:\n');
+    fprintf('\n');
+    fprintf(' Tensor size = %s, Approximation Rank = %d\n', mat2str(size(X)), R);
+    if isa(X,'sptensor')
+        nnonzeros = nnz(X);
+        tsz = prod(size(X));
+        fprintf(' Tensor type: sparse with %d (%.2g%%) nonzeros \n', ...
+            nnonzeros, 100*nnonzeros/tsz);
+        clear nnonzeros tsz;
+    else
+        fprintf(' Tensor type: %s\n', class(X));
+    end
+    fprintf(' alg = ''mu'' (multiplicative updates with adjustments)\n');
+    fprintf(' stoptol = %g, stoptime = %g\n', tol, stoptime);
+    fprintf(' maxiters = %d, maxinneriters = %d\n', ...
+            maxOuterIters, maxInnerIters);
+    fprintf(' epsDivZero = %g, kappa = %g, kappatol = %g\n', ...
+            epsilon, kappa, kappaTol);
+    fprintf('\n');
 end
 
 nViolations = zeros(maxOuterIters,1);
@@ -1313,8 +1337,9 @@ for iter = 1:maxOuterIters
     kktViolations(iter) = max(kktModeViolations);    
 
     if (mod(iter,printOuterItn)==0)
-        fprintf(' Iter %4d: Inner Its = %2d KKT violation = %.6e, nViolations = %2d\n', ...
-        iter, nInnerIters(iter), kktViolations(iter), nViolations(iter));            
+        fnVals(iter) = -tt_loglikelihood(X,M);
+        fprintf(' Iter %4d: Inner Its = %2d KKT violation = %.6e, nViolations = %2d, obj = %.8e\n', ...
+        iter, nInnerIters(iter), kktViolations(iter), nViolations(iter), fnVals(iter));            
     end
     times(iter) = toc;
     
@@ -1337,13 +1362,13 @@ t_stop = toc;
 %% Clean up final result
 M = normalize(M,'sort',1);
 
-obj = tt_loglikelihood(X,M);
+obj = -tt_loglikelihood(X,M);
 if printOuterItn>0
     normX = norm(X);   
     normresidual = sqrt( normX^2 + norm(M)^2 - 2 * innerprod(X,M) );
     fit = 1 - (normresidual / normX); %fraction explained by model
     fprintf('===========================================\n');
-    fprintf(' Final log-likelihood = %e \n', obj);
+    fprintf(' Final f = %e \n', obj);
     fprintf(' Final least squares fit = %e \n', fit);
     fprintf(' Final KKT violation = %7.7e\n', kktViolations(iter));
     fprintf(' Total inner iterations = %d\n', sum(nInnerIters));
@@ -1357,6 +1382,7 @@ output.nInnerIters = nInnerIters(1:iter);
 output.nViolations = nViolations(1:iter);
 output.nTotalIters = sum(nInnerIters);
 output.times = times(1:iter);
+output.fnVals = fnVals(1:iter);
 output.ttlTime = t_stop;
 output.obj = obj;
 
@@ -1430,13 +1456,6 @@ function Pi = tt_calcpi_prowsubprob(X, isSparse, M, R, n, N, sparse_indices)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
     if (isSparse)
@@ -1596,13 +1615,6 @@ function f = tt_loglikelihood_row(isSparse, x, m, Pi)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
     term1 = -sum(m);
@@ -1630,8 +1642,10 @@ end
 function f = tt_loglikelihood(X,M)
 %TT_LOGLIKELIHOOD Compute log-likelihood of data X with model M.
 %
-%   F = TT_LOGLIKELIHOOD(X,M) computes the log-likelihood of model M given
-%   data X, where M is a ktensor and X is a tensor or sptensor.
+%   F = TT_LOGLIKELIHOOD(X,M) computes a shifted version of the 
+%   log-likelihood of model M given data X, where M is a ktensor and X is a 
+%   tensor or sptensor. 
+%
 %   Specifically, F = - (sum_i m_i - x_i * log_i) where i is a multiindex
 %   across all tensor dimensions.
 %
@@ -1640,13 +1654,6 @@ function f = tt_loglikelihood(X,M)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 N = ndims(X);
 

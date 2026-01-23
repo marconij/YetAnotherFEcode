@@ -36,147 +36,148 @@
 %   uplus       - Unary plus (+) for symmetric tensors.
 %   xor         - Logical EXCLUSIVE OR for symmetric tensors.
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'symtensor_doc.html')))">Documentation page for symmetric tensor class</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','symtensor_doc.html')))">Documentation page for symmetric tensor class</a>
 %
 %   See also TENSOR_TOOLBOX, TENSOR/SYMMETRIZE, SYMKTENSOR, CP_SYM
 %
 %MATLAB Tensor Toolbox. Copyright 2017, Sandia Corporation.
 
-function [t,I] = symtensor(varargin)
-%SYMTENSOR Symmetric tensor that stores only the unique values.
-%
-%   S = SYMTENSOR(X) creates a symmetric tensor from a given tensor X. If X
-%   is not symmetric, than it is symmetrized.
-%
-%   [S,I] = SYMTENSOR(X) when X is a tensor also returns I, a matrix of
-%   indices of X which define the symmetric tensor. (This is the only case
-%   where two arguments are returned.)
-%
-%   S = SYMTENSOR(S0) copies the symtensor S0.
-%
-%   S = SYMTENSOR(VALS,M,N) constructs a symmetric tensor with M modes,
-%   dimension N, and values specified by VALS.
-%
-%   S = SYMTENSOR(FUN,M,N) constructs a symmetric tensor with M
-%   modes, dimension N, and values generated with function FUN. The
-%   function fun must return a matrix of values given arguments of row and
-%   column size.
-%
-%   Examples
-%   X = tenrand([3 3 3]);
-%   S = symtensor(X); % Symmetrize X
-%   S = symtensor(1:15,4,3); % Specify unique values, order 3, dim 3
-%   S = symtensor(@rand,3,7); % Random, order 3, dim 7
-%   S = symtensor(@ones,4,7); % Ones of order 4, dim 7
-%
-%   See also TENSOR/SYMMETRIZE, SYMKTENSOR, CP_SYM
-%
-%MATLAB Tensor Toolbox. Copyright 2017, Sandia Corporation.
+classdef symtensor
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
+    properties
+        val %< Vector of unique values.
+        m   %< Number of modes.
+        n   %< Dimension of each mode.
+    end
 
-% Set up --- the same for all
-t = init_fields;
-t = class(t,'symtensor');
+    methods
+        function t = symtensor(varargin)
+            %SYMTENSOR Symmetric tensor that stores only the unique values.
+            %
+            %   S = SYMTENSOR(X) creates a symmetric tensor from a given tensor X. If X
+            %   is not symmetric, then it is symmetrized. The unique values are stored.
+            %
+            %   S = SYMTENSOR(S0) copies the symtensor S0.
+            %
+            %   S = SYMTENSOR(VALS,M,N) constructs a symmetric tensor with M modes,
+            %   dimension N, and values specified by VALS.
+            %
+            %   S = SYMTENSOR(FUN,M,N) constructs a symmetric tensor with M
+            %   modes, dimension N, and values generated with function FUN. The
+            %   function fun must return a matrix of values given arguments of row and
+            %   column size.
+            %
+            %   Examples
+            %   X = tenrand([3 3 3]);
+            %   S = symtensor(X); % Symmetrize X
+            %   S = symtensor(1:15,4,3); % Specify unique values, order 3, dim 3
+            %   S = symtensor(@rand,3,7); % Random, order 3, dim 7
+            %   S = symtensor(@ones,4,7); % Ones of order 4, dim 7
+            %
+            %   See also TENSOR/SYMMETRIZE, SYMKTENSOR, CP_SYM, SYMTENSOR/INDICES
+            %
+            %Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% EMPTY CONSTRUCTOR
-if nargin == 0
-    error('TTB:BadInputs', 'Not enough input arguments.');
-end
-
-% COPY CONSTRUCTOR
-if nargin == 1 && isa(varargin{1}, 'symtensor')
-    t.val = varargin{1}.val;
-    t.m = varargin{1}.m;
-    t.n = varargin{1}.n;
-    return;
-end
-
-% CREATE FROM TENSOR
-if nargin == 1 && isa(varargin{1}, 'tensor')
-    
-    src = varargin{1};
-    src = symmetrize(src);
-    
-    m = ndims(src);
-    n = size(src,1);
-    t.m = m;
-    t.n = n;
-    
-    % Generate distinct indices
-    sz = nchoosek(m+n-1,m);
-    I = zeros(sz,m);
-    for loc = 1:sz
-        if loc == 1
-            I(loc,:) = ones(1,m);
-        else
-            I(loc,:) = I(loc-1,:);
-            j = m;
-            while (I(loc,j) == n)
-                j = j - 1;
+            % Empty constructor (not allowed)
+            if nargin == 0
+                error('TTB:BadInputs', 'Not enough input arguments.');
             end
-            I(loc,j:m) = I(loc,j)+1;
+
+            % Copy constructor
+            if nargin == 1 && isa(varargin{1}, 'symtensor')
+                t.val = varargin{1}.val;
+                t.m = varargin{1}.m;
+                t.n = varargin{1}.n;
+                return;
+            end
+
+            % Create from tensor
+            if nargin == 1 && isa(varargin{1}, 'tensor')
+                src = varargin{1};
+                src = symmetrize(src);
+                m_val = ndims(src);
+                n_val = size(src,1);
+                t.m = m_val;
+                t.n = n_val;
+                % Generate distinct indices
+                sz = nchoosek(m_val+n_val-1,m_val);
+                I = zeros(sz,m_val);
+                for loc = 1:sz
+                    if loc == 1
+                        I(loc,:) = ones(1,m_val);
+                    else
+                        I(loc,:) = I(loc-1,:);
+                        j = m_val;
+                        while (I(loc,j) == n_val)
+                            j = j - 1;
+                        end
+                        I(loc,j:m_val) = I(loc,j)+1;
+                    end
+                end
+                % Query symmetric indices from tensor, then save into val array
+                t.val = double(src(I));
+                return;
+            end
+
+            % From function handle
+            if nargin==3 && isa(varargin{1},'function_handle')
+                m_val = varargin{2};
+                n_val = varargin{3};
+                t.m = m_val;
+                t.n = n_val;
+                sz = nchoosek(m_val+n_val-1,m_val);
+                try
+                    t.val = feval(varargin{1}, sz, 1);
+                    t.val = double(t.val);
+                catch
+                    error('TTB:BadInputs','Bad generating function');
+                end
+                if ~isequal(size(t.val),[nchoosek(n_val+m_val-1,m_val),1])
+                    error('TTB:BadInputs','Bad generating function');
+                end
+                return;
+            end
+
+            % From value array
+            if nargin==3
+                val_in = varargin{1};
+                m_val = varargin{2};
+                n_val = varargin{3};
+                sz = nchoosek(m_val+n_val-1,m_val);
+                if ~isvector(val_in) || numel(val_in) ~= sz
+                    error('TTB:BadInputs', 'Value array is the wrong size');
+                end
+                t.m = m_val;
+                t.n = n_val;
+                if iscolumn(val_in) % Needs to be a column array
+                    t.val = val_in;
+                else
+                    t.val = val_in';
+                end
+                return;
+            end
+
+            error('TTB:BadInputs','Incorrect number or type of input arguments, or too many input arguments.');
+        end
+
+        function b = saveobj(a)
+            %SAVEOBJ Save a symtensor object.
+            b.val = a.val;
+            b.m = a.m;
+            b.n = a.n;
         end
     end
-    
-    % Query symmetric indices from tensor, then save into val array
-    t.val = double(src(I));
-    return;
-end
 
-% For constructing a symtensor from a function handle
-if nargin==3 && isa(varargin{1},'function_handle')
-    m = varargin{2};
-    n = varargin{3};
-    t.m = m;
-    t.n = n;
-    sz = nchoosek(m+n-1,m);
-    try
-        t.val = feval(varargin{1}, sz, 1);
-        t.val = double(t.val); % Convert to double, if possible
-    catch
-        error('TTB:BadInputs','Bad generating function');
+    methods (Static)
+        function t = loadobj(s)
+            %LOADOBJ Load a symtensor object.
+            if isa(s,'symtensor')
+                t = s;
+            else
+                t = symtensor(s.val, s.m, s.n);
+            end
+        end
     end
-    if ~isequal(size(t.val),[nchoosek(n+m-1,m),1])
-        error('TTB:BadInputs','Bad generating function');
-    end
-    return;
-end
-
-% For constructing a symtensor from a value array
-if nargin==3
-    val = varargin{1};
-    m = varargin{2};
-    n = varargin{3};
-    sz = nchoosek(m+n-1,m);
-    if ~isvector(val) || numel(val) ~= sz
-        error('TTB:BadInputs', 'Value array is the wrong size');
-    end
-    t.m = m;
-    t.n = n;
-    if iscolumn(val) % Needs to be a column array
-        t.val = val;
-    else
-        t.val = val';
-    end
-    return;
-end
-
-error('TTB:BadInputs','Too many input arguments');
-end
-
-function t = init_fields()
-t.val = [];
-t.m = 0;
-t.n = 0;
 end
 
 

@@ -16,23 +16,15 @@ function u = nvecs(t,n,r,opts)
 %   S = sptensor([3 3 3; 1 3 2; 1 1 3], 1, [3,3,3]); %<--Declare an sptensor
 %   nvecs(S,3,2)
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'nvecs_doc.html')))">Documentation page for n-vecs</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','nvecs_doc.html')))">Documentation page for n-vecs</a>
 %
 %   See also SPTENSOR, SPTENMAT, EIGS.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+if isincomplete(t)
+    error('Cannot handle incomplete tensors');
+end
 
 if ~exist('opts','var')
     opts = struct;

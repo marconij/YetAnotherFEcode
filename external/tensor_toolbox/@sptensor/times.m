@@ -1,22 +1,20 @@
 function C = times(A,B)
-%TIMES Array multiplication for sparse tensors.
+%TIMES Array multiplication for sptensors.
 %
 %   TIMES(A,B) is called for the syntax 'A .* B' when A or B is a 
-%   sparse tensor. A and B must have the same size, unless one is a scalar.
-%   A scalar can be multiplied by a sparse tensor of any size. 
+%   sptensor. A and B must have the same size, unless one is a scalar.
+%   A scalar can be multiplied by a sptensor of any size. 
 %
 %   See also SPTENSOR.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
+if isa(A,'sptensor') && isincomplete(A)
+    error('Cannot handle incomplete tensors');
+end
+if isa(B,'sptensor') && isincomplete(B)
+    error('Cannot handle incomplete tensors');
+end
 
 
 %% Observations for sparse matrix case.

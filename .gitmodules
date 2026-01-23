@@ -1,5 +1,9 @@
-# We commented out this module because we needed to modify the "..\yafec\external\tensor_toolbox\@tensor\ttv.m"
-# See issue: https://gitlab.com/tensors/tensor_toolbox/-/issues/81
+# TODO: define submodules to be included in the repository
+# Initialize submodules:
+#	git submodule update --init --recursive
+# Deinitialize submodules:
+#	git submodule deinit -f external
 # [submodule "external/tensor_toolbox"]
 # 	path = external/tensor_toolbox
 # 	url = https://gitlab.com/tensors/tensor_toolbox.git
+# 	branch = dev

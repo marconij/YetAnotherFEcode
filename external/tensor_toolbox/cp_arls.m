@@ -19,16 +19,18 @@ function [P,Uinit,output] = cp_arls(X,R,varargin)
 %   M = CP_ARLS(X,R,'param',value,...) specifies optional parameters and
 %   values. Valid parameters and their default values are:
 %   o 'mix'       - Include FJLT transformations {true}
-%   o 'epoch'     - Number of iterations between convergence checks {50}
+%   o 'epoch'     - Number of iterations between convergence checks {5}
 %   o 'maxepochs' - Maximum number of epochs {1000}
 %   o 'newitol'   - Quit after this many epochs with no improvement {5}
 %   o 'tol'       - Tolerance for improvement, i.e., fit - maxfit > tol {0}
 %   o 'fitthresh' - Terminate when fit > fitthresh {1.000}
 %   o 'printitn'  - Print fit every n epochs; 0 for no printing {10}
-%   o 'init'      - Initial guess ['random'|'nvecs'|cell array] {random}
+%   o 'init'      - Initial guess [{'random'}|cell array|ktensor]
 %   o 'nsamplsq'  - Number of least-squares row samples {10Rlog2(R)}
 %   o 'nsampfit'  - Number of entry samples for approximate fit {2^14}
 %   o 'dimorder'  - Order to loop through dimensions {1:ndims(A)}
+%   o 'truefit'   - Compute true fit at end {false}
+%   o 'trace'     - Return time and approx fit trace in out {false}
 %
 %   [M,U0] = CP_ARLS(...) also returns the initial guess.
 %
@@ -39,25 +41,16 @@ function [P,Uinit,output] = cp_arls(X,R,varargin)
 %   info = create_problem('Size',[100 100 100],'Num_Factors',2);
 %   M = cp_arls(info.Data,2);
 %
-%   REFERENCE: C. Battaglino, G. Ballard, T. G. Kolda. A Practical
-%   Randomized CP Tensor Decomposition, to appear in SIAM J. Matrix
-%   Analysis and Applications, 2017. http://arxiv.org/abs/1701.06600
+%   REFERENCE: C. Battaglino, G. Ballard, T. G. Kolda, A Practical
+%   Randomized CP Tensor Decomposition, SIAM J. Matrix Analysis and
+%   Applications, 39(2):876-901, 2018, https://doi.org/10.1137/17M1112303.
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'cp_arls_doc.html')))">Documentation page for CP-ARLS</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','cp_arls_doc.html')))">Documentation page for CP-ARLS</a>
 %
-%   See also CP_ALS, KTENSOR, TENSOR.
+%   See also CP_ARLS_LEV, CP_ALS, KTENSOR, TENSOR.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 %% Extract some sizes, etc.
 N = ndims(X);
@@ -66,7 +59,7 @@ num_elements = prod(sz);
 
 %% Parse parameters
 params = inputParser;
-params.addParameter('init', 'random', @(x) (iscell(x) || ismember(x,{'random'})));
+params.addParameter('init', 'random');
 params.addParameter('dimorder', 1:N, @(x) isequal(sort(x),1:N));
 params.addParameter('printitn', 10, @isscalar);
 params.addParameter('mix', true, @islogical);
@@ -75,9 +68,10 @@ params.addParameter('maxepochs', 1000);
 params.addParameter('nsampfit', 2^14);
 params.addParameter('tol', 0, @isscalar);
 params.addParameter('fitthresh', 1, @(x) isscalar(x) & x > 0 & x <= 1);
-params.addParameter('epoch', 50)
+params.addParameter('epoch', 5)
 params.addParameter('newitol', 5);
 params.addParameter('truefit', false, @islogical);
+params.addParameter('trace', false, @islogical);
 params.parse(varargin{:});
 
 % Copy from params object
@@ -93,15 +87,27 @@ nsamplsq = params.Results.nsamplsq;
 nsampfit = params.Results.nsampfit;
 epochsize = params.Results.epoch;
 truefit = params.Results.truefit;
+dotrace = params.Results.trace;
     
+%% Measure initialization time
+if dotrace
+    initstart = tic;
+end
+
 %% Set up initial guess for U (factor matrices)
-if iscell(init)
-    Uinit = init;
+if iscell(init) || isa(init,'ktensor')
+    if isa(init,'ktensor')
+        Uinit = init.U;
+    else
+        Uinit = init;
+    end
     if numel(Uinit) ~= N
         error('OPTS.init does not have %d cells',N);
     end
-    for n = dimorder(2:end)
-        if ~isequal(size(Uinit{n}),[size(X,n) R])
+    for n = 1:N
+        if (n == dimorder(1)) && isempty(Uinit{n})
+            continue;
+        elseif ~isequal(size(Uinit{n}),[size(X,n) R])
             error('OPTS.init{%d} is the wrong size',n);
         end
     end
@@ -111,7 +117,7 @@ else
     % inner iteration.
     if strcmp(init,'random')
         Uinit = cell(N,1);
-        for n = dimorder(2:end)
+        for n = 1:N
             Uinit{n} = rand(sz(n),R);
         end
     else
@@ -130,6 +136,15 @@ if printitn>0
     else
         fprintf('\nCP_ARLS (without mixing): \n');
     end
+    fprintf('  Print every %d epochs, ', printitn);
+    fprintf('  Epoch size: %d, ', epochsize);
+    fprintf('  Max epochs: %d\n', maxepochs);
+    fprintf('  Improvement tolerance: %.3e\n', fitchangetol);
+    fprintf('  Stop after this many iterations without improvement: %d\n', newitol);
+    fprintf('  Stop if f (approx) greater than: %.3f\n', fitthresh);
+    fprintf('  Initial guess: %s\n', class(init));
+    fprintf('  Least-squares row samples: %d\n', nsamplsq);
+    fprintf('  Entry samples for approximate fit: %d\n', nsampfit);
 end
 
 %% Sample input tensor for stopping criterion
@@ -178,6 +193,13 @@ end
 %% Main Loop: Iterate until convergence
 maxfit = 0;
 newi = 0; % number of epochs without improvement
+
+if dotrace
+    inittime = toc(initstart);
+    fittrace = zeros(maxepochs,1);
+    timetrace = zeros(maxepochs,1);
+    itertime = tic;
+end
 
 % ALS Loop
 for epoch = 1:maxepochs
@@ -238,6 +260,11 @@ for epoch = 1:maxepochs
         fprintf(' Iter %2dx%d: f~ = %e newi = %d\n', epoch, epochsize, fit, newi);
     end
     
+    if dotrace
+        fittrace(epoch) = fit;
+        timetrace(epoch) = toc(itertime);
+    end
+
     % Check for convergence
     if (flag == 0)
         break;
@@ -245,7 +272,11 @@ for epoch = 1:maxepochs
 end
 %% Clean up final result
 % Arrange the final tensor so that the columns are normalized.
-P = Psave;
+if exist('Psave','var')
+    P = Psave;
+else
+    warning('There may be a problem - we see no improvement in fit')
+end
 P = arrange(P);
 P = fixsigns(P); % Fix the signs
 
@@ -266,6 +297,11 @@ output = struct;
 output.params = params.Results;
 output.iters = epoch;
 output.fit = fit;
+if dotrace
+    output.init_time = inittime;
+    output.time_trace = timetrace(1:epoch);
+    output.fit_trace = fittrace(1:epoch);
+end
 end
 
 

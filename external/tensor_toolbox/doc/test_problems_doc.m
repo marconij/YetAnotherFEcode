@@ -1,6 +1,21 @@
-%% Creating test problems and initial guesses
+%% Creating Test Problems and Initial Guesses
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="working.html">Working with Tensors</a> 
+% &#62;&#62; <a href="test_problems_doc.html">Creating Test Problems</a>
+% </p>
+% </html>
+%
 % We demonstrate how to use Tensor Toolbox |create_problem| and
 % |create_guess| functions to create test problems for fitting algorithms. 
+%
+% Additionally, we describe |create_problem_binary|, which generates
+% binary-valued tensor data specifically for CP-type problems.
+
+%%
+rng('default'); %<- Setting random seed for reproducibility of this script
 
 %% Creating a CP test problem
 % The |create_problem| function allows a user to generate a test problem
@@ -264,3 +279,47 @@ info = create_problem;
 U = create_guess('Soln', info.Soln, 'Factor_Generator', 'pertubation', ...
     'Pertubation', 0.05);
 
+%% Creating binary CP test problems with create_problem_binary
+% The |create_problem_binary| function generates a sparse binary tensor |X|
+% of a specified size, along with an underlying low-rank CP model |Mtrue|
+% (a |ktensor|) that represents the *odds* of a 1 in each position. This
+% function is specifically designed for creating test problems for CP
+% decomposition of binary data.
+%
+% Key parameters for |create_problem_binary(sz,r,'param',value)|:
+%
+% * |sz|: Size of the tensor (e.g., |[I J K]|).
+% * |r|: Rank of the underlying CP model |Mtrue|.
+% * |'loprob'|: Probability of a 'noise' 1 (default: 0.01). This influences
+% the baseline odds of observing a 1.
+% * |'hiprob'|: Probability of a 'structural' 1 (default: 0.90). This
+% influences the odds of observing a 1 for entries corresponding to
+% high-valued elements in the factor matrices.
+% * |'density'|: Density of structural (high-valued) entries in the factor
+% matrices (default: |1/r|).
+% * |'state'|: State for the random number generator, for reproducibility.
+% * |'spgen'|: If true, generates the sparse tensor |X| without explicitly
+% forming the full odds tensor (default: false). This is efficient for
+% very large, sparse problems.
+%
+% The function returns the generated sparse binary tensor |X|, the true
+% underlying odds model |Mtrue| as a |ktensor|, and an |info| struct
+% containing the parameters used.
+
+% Here, we generate a 3-way binary tensor of size 20x25x30 with an underlying
+% rank-3 CP model.
+
+[X_bin, Mtrue_bin, info_bin] = create_problem_binary([5 8 10], 3);
+
+% Display the generated ktensor representing the odds
+Mtrue_bin
+
+% Display the generated sparse binary tensor
+X_bin
+
+% Show the parameters used
+info_bin.params
+
+% Verify that the data is binary and sparse
+is_data_binary = all(ismember(X_bin.vals, 1)) && issparse(X_bin.vals)
+nnz_X_bin = nnz(X_bin)

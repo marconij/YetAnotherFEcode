@@ -1,7 +1,7 @@
 function Y = squeeze(X)
-%SQUEEZE Remove singleton dimensions from a sparse tensor.
+%SQUEEZE Remove singleton dimensions from a sptensor.
 %
-%   Y = SQUEEZE(X) returns a sparse tensor Y with the same elements as
+%   Y = SQUEEZE(X) returns a sptensor Y with the same elements as
 %   X but with all the singleton dimensions removed.  A singleton
 %   is a dimension such that size(X,dim)==1.  
 %
@@ -12,16 +12,8 @@ function Y = squeeze(X)
 %   squeeze( sptensor([1 1 1],1,[1 1 1]) ) %<-- returns a scalar
 %   See also SPTENSOR.
 % 
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 if all(X.size > 1)
@@ -35,9 +27,9 @@ else
   else
     siz = X.size(idx);
     if isempty(X.vals)
-        Y = sptensor([],[],siz);
+        Y = sptensor([],[],siz,X.type,0);
     else
-        Y = sptensor(X.subs(:,idx), X.vals, siz);
+        Y = sptensor(X.subs(:,idx), X.vals, siz, X.type, 0);
     end
   end
 end

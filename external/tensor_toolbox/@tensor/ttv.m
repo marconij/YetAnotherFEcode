@@ -32,16 +32,8 @@ function c = ttv(a,v,dims)
 %
 %   See also TENSOR, TENSOR/TTT, TENSOR/TTM.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 % Check the number of arguments
@@ -71,11 +63,6 @@ for i = 1:numel(dims)
     end
 end
 
-% % These lines are removed in yaFEc (they are outdated and never called,
-% % but the file search takes time). 
-% % See issue: https://gitlab.com/tensors/tensor_toolbox/-/issues/81
-% % NB: as a consequence, as long as this issue is not fixed, we comment
-% % out the tensor_toolbox from the .gitmodule file.
 % if exist('tensor/ttv_single','file') == 3
 %     c = a;
 %     for i = numel(dims) : -1 : 1

@@ -10,11 +10,13 @@ function a = subsref(t,s)
 %   Case 1b: Y = X(R1,R2,...,RN), where one or more Rn is a range and
 %   the rest are indices, returns a sparse tensor.
 %
-%   Case 2a: V = X(S) or V = X(S,'extract'), where S is a p x n array
-%   of subscripts, returns a vector of p values.
+%   Case 2a: V = X(S), where S is a p x n array of subscripts, returns a
+%   vector of p values. If ndims(X)=1, use instead V = X(S,'extract') so
+%   that it knows this is extracting values rather than giving a set of
+%   indicies.
 %
-%   Case 2b: V = X(I) or V = X(I,'extract'), where I is a set of p
-%   linear indices, returns a vector of p values.
+%   Case 2b: V = X(I), where I is a set of p linear indices, returns a
+%   vector of p values. If ndims(X)=1, use V = X(I,'extract') instead.
 %
 %   Any ambiguity results in executing the first valid case. This
 %   is particularly an issue if ndims(X)==1.
@@ -35,31 +37,21 @@ function a = subsref(t,s)
 %
 %   See also TENSOR, TENSOR/FIND.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 switch s(1).type
     case '{}'
         error('Cell contents reference from a non-cell array object.')
     case '.'
-        fieldname = s(1).subs;
-        switch fieldname
-            case 'data'
-                a = tt_subsubsref(t.data,s);
-            case 'size'
-                a = tt_subsubsref(t.size,s);
-            otherwise
-                error(['No such field: ', fieldname]);
+        % Handle dot indexing
+        if isprop(t, s(1).subs)
+            a = builtin('subsref', t, s);
+        else
+            error('No such property: %s', s(1).subs);
         end
+
     case '()'
 
         % *** CASE 1: Rectangular Subtensor ***
@@ -129,7 +121,7 @@ switch s(1).type
         end
 
         a = squeeze(t.data(idx));
-        if isrow(a), a = a'; end
+        if isrow(a), a = a.'; end
         a = tt_subsubsref(a,s);
         return;
 end

@@ -22,16 +22,8 @@ function V = mttkrp(X,U,n,vers)
 %
 %   See also TENSOR, TENMAT, KHATRIRAO
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 % Multiple versions supported...
 if ~exist('vers','var')
@@ -103,9 +95,12 @@ else
     Y = reshape(X.data,[],szr);
     Y = Y * Ul;
     Y = reshape(Y,szl,szn,R);
-    if vers == 2
+    if vers == 2 % Not faster than version 1 in simple tests
         V = bsxfun(@times,Ur,Y);
         V = reshape(sum(V,1),szn,R);
+    elseif vers == 3 % Only marginally faster than version 1 and not consitently better
+        V = pagemtimes(Y,'transpose',Ur,'none');
+        V = reshape(V,szn,R);
     else % default (vers == 1)
         V = zeros(szn,R);
         for r =1:R

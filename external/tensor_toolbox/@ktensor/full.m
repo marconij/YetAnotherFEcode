@@ -9,16 +9,8 @@ function t = full(t,vers)
 %
 %   See also KTENSOR, TENSOR, KTENSOR/DOUBLE.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 if ~exist('vers','var')
     vers=2;
@@ -37,7 +29,7 @@ else
         % This unrolls modes 1:minS into rows and minS+1:end into columns
         % of the column-major matrix data which is then converted into a
         % tensor without permutation.
-        data = khatrirao(t.u(1:minS),'r') * diag(t.lambda) * khatrirao(t.u(minS+1:end),'r')';
+        data = khatrirao(t.u(1:minS),'r') * diag(t.lambda) * khatrirao(t.u(minS+1:end),'r').';
     end
 end
 

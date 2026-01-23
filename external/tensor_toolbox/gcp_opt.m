@@ -25,7 +25,7 @@ function [M, M0, info] = gcp_opt(X, nc, varargin)
 %      'adam' - Momentum-based SGD method
 %   If X is dense, any of the three options can be used, and 'lbfgsb' is
 %   the default. The X is sparse, only 'sgd' and 'adam' (default) are
-%   options. Each method has specific parameters, see the document for
+%   options. Each method has specific parameters, see the documentation for
 %   details.
 %
 %   M = GCP_OPT(X,R,...,'mask',W) specifies a mask W that is 0 for missing
@@ -37,31 +37,27 @@ function [M, M0, info] = gcp_opt(X, nc, varargin)
 %   parameters and values as follows, with the defaults in curly braces:
 %
 %      'maxiters' - Maximum number of outer iterations {1000}
-%      'init' - Initialization for factor matrices {'rand'}
+%      'init' - Initial guess [{'random'}|cell array|ktensor]
 %      'printitn' - Print every n iterations; 0 for no printing {1}
 %      'state' - Random state, to re-create the same outcome {[]}
 %
-%   [M,M0,out] = GCP_OPT(...) also returns the initial guess (M0) and a
-%   structure with additional information. To reproduce the
+%   [M,M0,out] = GCP_OPT(...) also returns the initial guess (M0) as a 
+%   ktensor and a structure with additional information. To reproduce the
 %   run exactly, use M_alt = gcp_opt(X,R,out.params.Results).
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'gcp_opt_doc.html')))">Documentation page for GCP_OPT</a>
-%
 %   REFERENCES: 
-%   * D. Hong, T. G. Kolda, J. A. Duersch. Generalized Canonical Polyadic
-%     Tensor Decomposition. SIAM Review, 2019.  
-%   * T. G. Kolda, D. Hong, J. Duersch. Stochastic Gradients for
-%     Large-Scale Tensor Decomposition, 2019.
+%   * D. Hong, T. G. Kolda, J. A. Duersch, Generalized Canonical
+%     Polyadic Tensor Decomposition, SIAM Review, 62:133-163, 2020,
+%     https://doi.org/10.1137/18M1203626     
+%   * T. G. Kolda, D. Hong, Stochastic Gradients for Large-Scale Tensor
+%     Decomposition. SIAM J. Mathematics of Data Science, 2:1066-1095,
+%     2020, https://doi.org/10.1137/19m1266265
 %
-%   %   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'gcp_opt_doc.html')))">Documentation page for GCP-OPT</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','gcp_opt_doc.html')))">Documentation page for GCP_OPT</a>
 %
 %   See also CP_OPT, CP_APR.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 % Created by Tamara G. Kolda, Fall 2018. Includes work with
 % collaborators David Hong and Jed Duersch. 
@@ -187,7 +183,7 @@ if ~isempty(fh) && ~isempty(gh)
         error('Must specify ''func'' and ''grad'' if either one is specified');
     end
     if isempty(lb)
-        lb = -infty;
+        lb = -Inf;
     end
     type = 'user-specified';
 else     
@@ -296,14 +292,16 @@ if use_stoc
         
         % Create and sort linear indices of X nonzeros for the sampler
         if isempty(xnzidx)
+            if isdense
+                error('Stratified sampling only works for sparse tensors');
+            end
             xnzidx = tt_sub2ind64(sz,X.subs);
             xnzidx = sort(xnzidx);
         end
         
         fsampler = @() tt_sample_stratified(X, xnzidx, fsamp(1), fsamp(2), oversample);
-        fsampler_str =  sprintf('stratified with %d nonzero and %d zero samples', fsamp);
-        
-        
+        fsampler_str =  sprintf('stratified with %d nonzero and %d zero samples', fsamp);                
+
     elseif strcmp(fsampler_type, 'uniform')
         
         if isempty(fsamp)
@@ -416,6 +414,7 @@ if printitn > 0
     if issparse
         fprintf('Sparse tensor: %d (%.2g%%) Nonzeros and %d (%.2f%%) Zeros\n', nnonzeros, 100*nnonzeros/tsz, nzeros, 100*nzeros/tsz);
     end
+    fprintf('GCP rank: %d\n', nc)
     fprintf('Generalized function Type: %s\n', type);
     fprintf('Objective function: %s\n', func2str(fh));
     fprintf('Gradient function: %s\n', func2str(gh));

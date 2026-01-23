@@ -1,3 +1,6 @@
 *~
 *.asv
 /maintenance/create_doc.m
+tmp*
+temp*
+/.vscode/*

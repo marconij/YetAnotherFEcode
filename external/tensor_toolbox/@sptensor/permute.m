@@ -1,5 +1,5 @@
 function t = permute(t,order)
-%PERMUTE Rearrange the dimensions of a sparse tensor.
+%PERMUTE Rearrange the dimensions of a sptensor.
 %
 %   B = PERMUTE(A,ORDER) rearranges the dimensions of A so that they
 %   are in the order specified by the vector ORDER. The result has the
@@ -8,16 +8,8 @@ function t = permute(t,order)
 %
 %   See also SPTENSOR, PERMUTE.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 % Error checking

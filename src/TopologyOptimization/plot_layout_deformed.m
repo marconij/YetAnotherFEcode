@@ -11,8 +11,10 @@ function plot_layout_deformed(nel, d, nodes, u, varargin)
 % Parse inputs
 p = inputParser;
 addOptional(p, 'mapFea2To', []);
+addOptional(p, 'scale', 0.1);
 parse(p, varargin{:});
 mapFea2To = p.Results.mapFea2To;
+scale = p.Results.scale;
 
 % Pass from the FEA domain to the TO domain
 if ~isempty(mapFea2To)
@@ -23,7 +25,7 @@ end
 dMatrix = reshape(d, nel).';
 
 % Scale the displacement
-uLim = 0.5 * max(nel);
+uLim = scale * max(nodes, [], 'all');
 uMax = max(abs(u));
 u = u / uMax * uLim;
 

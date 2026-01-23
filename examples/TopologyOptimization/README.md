@@ -16,6 +16,13 @@ The following examples are provided:
 
 4. `FrequencyMaximization.m`: frequency maximization of a clamped-clamped resonator subject to a volume constraint.
 
+5. `BucklingMaximization.m`: maximization of the buckling load factor a ??? subject to a volume constraint.
+
+5. `StrainEnergyMaximization.m`: strain energy maximization of a L-shaped beam subject to a volume constraint in case of non-homogeneous Dirichlet boundary condition.
+
+## Post-Processing and Validation
+For post-processing and validation of the results, please refer to the [ComsolPostProcessing](./ComsolPostProcessing/README.md) folder.
+
 ## Citation
 To cite this package, please cite the followings:
 

@@ -1,22 +1,12 @@
 function a = extract(t,srchsubs)
 %EXTRACT Extract value for a sptensor. 
 %
-%   EXTRACT(X,SUBS) returns a list of values.
+%   EXTRACT(X,SUBS) returns a list of values. Returns NaN for missing 
+%   values of an incomplete tensor.
 %
 %   See also SPTENSOR/SUBSREF.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
-
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 % Check range of requested subscripts
 p = size(srchsubs,1);
@@ -35,13 +25,17 @@ if ~isempty(badloc)
     error('Invalid subscripts');
 end
 
-% Set the default answer to zero
-a = zeros(p,1);
+% Set the default answer to zero or nan
+if strcmp(t.type,'sparse')
+    a = zeros(p,1);
+else
+    a = nan(p,1);
+end
 
 % Find which indices already exist and their locations
 [tf,loc] = ismember(srchsubs,t.subs,'rows');
 
-% Fill in the non-zero elements in the answer
+% Fill in the non-zero/known elements in the answer
 nzsubs = find(tf);
 a(nzsubs,1) = t.vals(loc(nzsubs));
 

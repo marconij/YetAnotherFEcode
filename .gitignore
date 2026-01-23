@@ -12,8 +12,10 @@
 *.gif
 *.avi
 *.mp4
+# others
 diary
-myprojects/
+myprojects/ 
+*.lnk
 # Topology optimization results
 *.vtk
 *.stl

@@ -42,17 +42,11 @@ function Y = ttm(X,V,varargin)
 %
 %   See also SPTENSOR, TENSOR/TTM.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
+if isincomplete(X)
+    error('Cannot handle incomplete tensors');
+end
 
 %% Check the number of arguments
 if (nargin < 2)
@@ -95,7 +89,7 @@ end
 
 %% Flip V is transposed
 if tflag == 't'
-    V = V';
+    V = V.';
 end
 
 %% Check n
@@ -123,7 +117,7 @@ cdims = Xnt.cdims;
 
 % Convert to sparse matrix and do the multiplication; result is generally a
 % dense matrix 
-Z = double(Xnt) * V';
+Z = double(Xnt) * V.';
 
 if nnz(Z) <= 0.5 * prod(siz)
     % Final result is a *sparse* tensor
@@ -131,7 +125,7 @@ if nnz(Z) <= 0.5 * prod(siz)
     Y = sptensor(Ynt);
 else
     % Final result is a *dense* tensor
-    Ynt = tenmat(full(Z), rdims, cdims, siz);
+    Ynt = tenmat(Z, rdims, cdims, siz);
     Y = tensor(Ynt);
 end
 

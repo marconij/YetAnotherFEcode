@@ -5,7 +5,8 @@ function [T,Xinit] = tucker_sym(S,R,varargin)
 %   the symmetric tensor S, according to the specified dimension R. The
 %   result returned in T is a ttensor (with all factors equal), i.e.,
 %   T = G x_1 X x_2 X ... x_N X where X is the optimal factor matrix and G
-%   is the corresponding core.  
+%   is the corresponding core.  Note that S must be a tensor, not a
+%   symtensor. Additionally, S must be _exactly_ symmetric.
 %
 %   T = TUCKER_SYM(S,R,'param',value,...) specifies optional parameters and
 %   values. Valid parameters and their default values are:
@@ -17,22 +18,26 @@ function [T,Xinit] = tucker_sym(S,R,varargin)
 %
 %   [T,X0] = TUCKER_SYM(...) also returns the initial guess.
 %
-%   See also TUCKER_SYM.
+%   See also TENSOR/SYMMETRIZE.
 %
 %   Reference: Phillip A. Regalia, Monotonically Convergent Algorithms for
 %   Symmetric Tensor Approximation, Linear Algebra and its Applications
 %   438(2):875-890, 2013, http://dx.doi.org/10.1016/j.laa.2011.10.033.   
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
 %% Input checking
+if ~isa(S,'tensor')
+    error('First input must be a tensor object')
+end
+
 if ~issymmetric(S)
-    error('S must be symmetric');
+    error('Input tensor must be symmetric');
 end
 
 if numel(R) ~= 1
-    error('R must be a scalar');
+    error('Second input must be a scalar');
 end
 
 N = ndims(S);
@@ -88,6 +93,17 @@ svdtol = D^(N-1) * norm(S) * eps(1.0);
 
 if printitn > 0
     fprintf('\nSymmetric Tucker:\n');
+    fprintf('Tensor size: %s\n', tt_size2str(size(S)));
+    fprintf('Rank (R): %d\n', R);
+    fprintf('Tolerance (matrix rel diff): %.2e\n', tol);
+    fprintf('Max iterations: %d\n', maxiters);
+    if ischar(init)
+        fprintf('Initialization: %s\n', init);
+    else
+        fprintf('Initialization: user-provided\n');
+    end
+    fprintf('Return type: %s\n', params.Results.return);
+    fprintf('\n');
 end
 
 %% Main Loop: Iterate until convergence
@@ -139,6 +155,12 @@ else
     [Xcell{:}] = deal(X);
     core = ttm(S, Xcell, 1:N, 't');
     T = ttensor(core, Xcell);
+    % Compute and report final error
+    if printitn > 0
+        Tfinal = ttensor(core, Xcell);
+        relerr = norm(S-full(Tfinal))/norm(S);
+        fprintf('Final relative error: %e\n', relerr);
+    end
 end
 
 

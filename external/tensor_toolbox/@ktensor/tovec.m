@@ -12,20 +12,23 @@ function x = tovec(K,lambdaflag)
 %   K = ktensor([3; 2], rand(4,2), rand(5,2), rand(3,2));
 %   V = tovec(K);
 %   Kcopy = ktensor(V, size(K), ndims(K), true);
-%   norm(K-Kcopy) %<- Zero (or close to it)
+%   isequal(K,Kcopy) %<- TRUE
 %
 %   K = ktensor({rand(4,2), rand(5,2), rand(3,2)});
-%   V = tovec(K);
+%   V = tovec(K,false);
 %   Kcopy = ktensor(V, size(K), ndims(K), false);
-%   norm(K-Kcopy) %<- Zero (or close to it)
+%   isequal(K,Kcopy) %<- TRUE
 %
 %   See also KTENSOR, KTENSOR/SIZE, KTENSOR/NCOMPONENTS.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2017, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 if ~exist('lambdaflag','var')
     lambdaflag = true;
+end
+
+if ~lambdaflag && any(K.lambda ~= 1)
+    warning('Using tovec(X,false) on ktensor with nonunit weights')
 end
 
 xcell = cellfun(@(x) x(:), K.u, 'UniformOutput', false);

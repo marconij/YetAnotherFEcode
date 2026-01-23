@@ -51,6 +51,13 @@ classdef Mesh < handle
             nodeIDs = reshape(nodeIDs,[],1);
             DOFs = (nodeIDs-1)*self.nDOFPerNode + (1:self.nDOFPerNode);
         end
+        
+        function nodeIDs = get_nodeIDs_from_DOF(self,DOFs)
+            % Returns the node IDs corresponding to the DOFs
+            DOFs = reshape(DOFs,[],1);
+            nodeIDs = ceil(DOFs/self.nDOFPerNode);
+            nodeIDs = unique(nodeIDs); % remove duplicates
+        end
 
         function DOFs = get_DOF_from_location(self,outcoord)
             DOFs = zeros(size(outcoord,1), self.nDOFPerNode);
@@ -68,6 +75,56 @@ classdef Mesh < handle
                 [~,ind] = min(dist);            
                 nodeIDs(ii,1) = ind;
             end
+        end
+
+        function nodeIDs = get_nodeIDs_inside_box(self,box)
+            % box: 2 x nDim matrix defining the two opposite vertices of a
+            % rectangle (in 2D) or a parallelpiped (in 3D). The IDs of the
+            % nodes inside the box are returned.
+            x1 = box(1,1); x2 = box(2,1);
+            y1 = box(1,2); y2 = box(2,2);
+            x = self.nodes(:,1); 
+            y = self.nodes(:,2);
+            if numel(box)==4
+                nodeIDs = x>=x1 & x <= x2 & y >= y1 & y <= y2;
+            elseif numel(box)==6
+                z1 = box(1,3); z2 = box(2,3);
+                z = self.nodes(:,3);
+                nodeIDs = x>=x1 & x <= x2 & y >= y1 & y <= y2 & z >= z1 & z <= z2;
+            else
+                error('Wrong box dimension (must be 2 x nDim)')
+            end
+            nodeIDs = find(nodeIDs);
+            if isempty(nodeIDs)
+                warning('No nodes inside this box!')
+            end
+        end
+
+        function nodeIDs = get_nodeIDs_from_elemIDs(self,elemIDs)
+            nodeIDs = cell(length(elemIDs));
+            for e = 1 : length(elemIDs)
+                nodeIDs{e}(:,1) = self.Elements(e).Object.nodeIDs;
+            end
+            nodeIDs = vertcat(nodeIDs{:});
+            nodeIDs = unique(nodeIDs);
+        end
+
+        function elemIDs = get_elemIDs_from_nodeIDs(self,nodeIDs)
+            % input: vector containing node IDs
+            % output: IDs of the elements whose all nodes are also in nodeIDs
+            A = self.elementsConnectivity;
+            B = nodeIDs;
+            ic = zeros(self.nElements,1);
+            for ii = 1 : self.nElements
+                C = setdiff(A(ii,:),B);
+                ic(ii) = isempty(C);
+            end
+            elemIDs = find(ic);
+        end
+
+        function [elemIDs,nodeIDs] = get_elemIDs_inside_box(self,box)
+            nodeIDs = self.get_nodeIDs_inside_box(box);
+            elemIDs = self.get_elemIDs_from_nodeIDs(nodeIDs);
         end
 
         function coordinates = get_location_from_nodeIDs(self,nodeIDs)

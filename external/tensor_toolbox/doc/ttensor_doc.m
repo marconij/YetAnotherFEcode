@@ -1,4 +1,13 @@
-%% Tucker tensors
+%% Tucker Tensors
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="tensor_types.html">Tensor Types</a> 
+% &#62;&#62; <a href="ttensor_doc.html">Tucker Tensors</a>
+% </p>
+% </html>
+%
 % Tucker format is a decomposition of a tensor X as the product of a core
 % tensor G and matrices (e.g., A,B,C) in each dimension. In other words, a
 % tensor X is expressed as:
@@ -8,6 +17,9 @@
 % In MATLAB notation, |X=ttm(G,{A,B,C})|. The |ttensor| class stores the
 % components of the tensor X and can perform many operations, e.g., |ttm|,
 % without explicitly forming the tensor X.
+%%
+rng('default'); %<- Setting random seed for reproducibility of this script
+
 %% Creating a ttensor with a tensor core
 core = tensor(rand(3,2,1),[3 2 1]); %<-- The core tensor.
 U = {rand(5,3), rand(4,2), rand(3,1)}; %<-- The matrices.
@@ -38,6 +50,9 @@ X = ttensor(core,U) %<-- Create a tensor
 full(X) %<-- Converts to a tensor.
 %%
 tensor(X) %<-- Also converts to a tensor.
+%% Use reconstruct to compute part of a full tensor
+% See also <ttensor_reconstruct_doc.html Partial Reconstruction> 
+reconstruct(X,3,1) % Extract first front slice
 %% Use double to convert a ttensor to a (multidimensional) array
 double(X) %<-- Converts to a MATLAB array
 %% Use ndims and size to get the size of a ttensor

@@ -54,7 +54,7 @@ classdef BeamElement < Element
         end
         
         function update_transformation_matrix(self)
-            T = speye(6,6);
+            T = eye(6,6);
             R = rotation_matrix(self.nodes);
             T(1:2,1:2) = R;
             T(4:5,4:5) = R;

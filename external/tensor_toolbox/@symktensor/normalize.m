@@ -18,16 +18,8 @@ function X = normalize(X,N,normtype)
 %
 %   See also SYMKTENSOR, SYMKTENSOR/ARRANGE.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %%
@@ -68,8 +60,8 @@ end
 
 %% Absorb the weight into one factor, if requested
 if (N == 0)
-    D = diag(nthroot(abs(X.lambda),X.m));
-    X.u = X.u * D; 
+    d = nthroot(abs(X.lambda),X.m);
+    X.u = bsxfun(@times,X.u',d)'; 
     X.lambda = sign(X.lambda) .* ones(size(X.lambda));
 elseif (N == -2)
     if ncomponents(X) > 1

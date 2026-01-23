@@ -1,15 +1,26 @@
 %% Tensors
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="tensor_types.html">Tensor Types</a> 
+% &#62;&#62; <a href="tensor_doc.html">Tensors (dense)</a>
+% </p>
+% </html>
+%
 % Tensors are extensions of multidimensional arrays with additional
 % operations defined on them. Here we explain the |tensor| class, for
 % storing dense tensors, and the basics of creating and working with
 % tensors. The |tensor| class is best described in the following
 % reference:
 %
-% * B. W. Bader and T. G. Kolda. *Algorithm 862: MATLAB Tensor Classes
-% for Fast Algorithm Prototyping*, _ACM Trans. Mathematical Software_
-% 32:635-653, 2006. <http://dx.doi.org/10.1145/1186785.1186794
-% DOI:10.1145/1186785.1186794>. <bibtex.html#TTB_Dense [BibTeX]>
+% * B. W. Bader and T. G. Kolda. Algorithm 862: MATLAB Tensor Classes
+% for Fast Algorithm Prototyping, ACM Trans. Mathematical Software,
+% 32:635-653, 2006. <http://dx.doi.org/10.1145/1186785.1186794>. 
 %
+%%
+rng('default'); %<- Setting random seed for reproducibility of this script
+
 %% Creating a tensor from an array
 % The |tensor| command converts a (multidimensional) array to a tensor
 % object.
@@ -140,7 +151,13 @@ norm(T)
 % |reshape| reshapes a tensor into a given size array. The total
 % number of elements in the tensor cannot change.
 X = tensor(randi(10,3,2,3));
-reshape(X,[3,3,2]);
+Y = reshape(X,[3,3,2])
+%% Using |unfold| and |vec| to convert a tensor to a matrix or vector
+X = tenrand([2 3 2])
+X1 = unfold(X,1) % mode-1 unfolding
+X2 = unfold(X,2) % mode-2 unfolding
+X3 = unfold(X,3) % mode-3 unfolding
+xvec = vec(X)
 %% Basic operations (plus, minus, and, or, etc.) on a tensor
 % The tensor object supports many basic operations, illustrated here.
 A = tensor(floor(3*rand(2,3,2)))

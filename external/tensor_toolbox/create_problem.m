@@ -103,13 +103,11 @@ function [info,params] = create_problem(varargin)
 %   info = create_problem('Factor_Generator', @(m,n) matrandcong(m,n,.9), ...
 %     'Lambda_Generator', @ones);
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'test_problems_doc.html')))">Documentation page for creating test problems</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','test_problems_doc.html')))">Documentation page for creating test problems</a>
 %
 %   See also MATRANDCONG, MATRANDORTH, MATRANDNORM, CREATE_GUESS.
 %   
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 %% Random set-up
 defaultStream = RandStream.getGlobalStream;
@@ -330,7 +328,7 @@ switch lower(params.Type)
         S = ktensor(lambda,U);
     case {'tucker'}
         cgfh = get_generator(params.Core_Generator);
-        core = tensor(cgfh(nfactors));
+        core = tensor(cgfh(nfactors),nfactors);
         S = ttensor(core,U);
     otherwise
         error('Invalid choice for ''Type''');
@@ -385,13 +383,6 @@ function W = tt_create_missing_data_pattern(sz,M,isSparse)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 %   Code by Evrim Acar and Tammy Kolda, 2009.
 

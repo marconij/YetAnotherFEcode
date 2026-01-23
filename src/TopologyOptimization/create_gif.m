@@ -7,14 +7,18 @@ function create_gif(nel, densHistory, varargin)
 %       TO domain (optional, default is []).
 %   fileName: string, the name of the gif file (optional, default is
 %       'densHistory').
+%   delay_time: scalar, the delay time between frames in seconds (optional,
+%       default is 0.1).
 
 % Parse the inputs
 p = inputParser;
 addOptional(p, 'mapFea2To', []);
 addOptional(p, 'fileName', 'densHistory');
+addOptional(p, 'delay_time', 0.1);
 parse(p, varargin{:});
 mapFea2To = p.Results.mapFea2To;
 fileName = p.Results.fileName;
+delay_time = p.Results.delay_time;
 
 % Number of density vectors
 nPoints = find(~isnan(densHistory(1, :)), 1, 'last');
@@ -24,7 +28,6 @@ fig = figure('Color', 'w');
 
 % Loop
 fileName = [fileName, '.gif'];
-delay_time = 0.1;
 for ii = 1:nPoints
     % Plot
     plot_layout(nel, densHistory(:, ii), mapFea2To);

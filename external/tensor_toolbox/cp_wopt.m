@@ -9,7 +9,7 @@ function [P, P0, output] = cp_wopt(Z,W,R,varargin)
 %   K = CP_WOPT(X,W,R,'param', value,...) specifies additional
 %   parameters for the method. Specifically...
 %
-%   'skip_zeroing' - Skip the *expensive* step where all the missing
+%   'skip_zeroing' - Skip the somewhat expensive step where all the missing
 %   entries in X are set to zero. Only set this to true if the entries were
 %   already zeroed out. There is no way to disable the printing for the
 %   time for this unless you set this to true --- this is to avoid
@@ -42,24 +42,22 @@ function [P, P0, output] = cp_wopt(Z,W,R,varargin)
 %
 %   'verbosity' - Set to zero to disable all printing. 
 %
-%   [K, U0] = CP_WOPT(...) also returns the initial guess.
+%   [K, U0] = CP_WOPT(...) also returns the initial guess as a cell array.
 %
 %   [K, U0, OUT] = CP_WOPT(...) also returns a structure with the
 %   optimization exit flag, the final relative fit, and the full
 %   output from the optimization method.
 %
-%   REFERENCE: E. Acar, D. M. Dunlavy, T. G. Kolda and M. Mørup, Scalable
+%   REFERENCE: E. Acar, D. M. Dunlavy, T. G. Kolda and M. Mï¿½rup, Scalable
 %   Tensor Factorizations for Incomplete Data, Chemometrics and Intelligent
-%   Laboratory Systems 106(1):41-56, March 2011
-%   (doi:10.1016/j.chemolab.2010.08.004)   
+%   Laboratory Systems, 106(1):41-56, 2011,
+%   http://dx.doi.org/10.1016/j.chemolab.2010.08.004.
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'cp_wopt_doc.html')))">Documentation page for CP-WOPT</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','cp_wopt_doc.html')))">Documentation page for CP-WOPT</a>
 %
 %   See also CP_OPT.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
 
@@ -91,10 +89,14 @@ if do_print
     fprintf('Running CP-WOPT...\n');
 end
 
+%% Check inputs
+
 %% Zeroing
-if do_zeroing    
+if do_zeroing && isa(Z,'tensor') && isa(W,'tensor')
     tic;
-    Z = Z.*W;
+    Zdata = Z.data;
+    Zdata(double(W)==0) = 0;
+    Z = tensor(Zdata,size(Z));
     ztime = toc;
     fprintf('Time for zeroing out masked entries of data tensor is %.2e seconds.\n', ztime);
     fprintf('(If zeroing is done in preprocessing, set ''skip_zeroing'' to true.)\n');
@@ -236,13 +238,6 @@ function [f,G] = tt_cp_wfg(Z,W,A,normZsqr)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Compute B = W.*ktensor(A)
@@ -291,13 +286,6 @@ function [f,g] = tt_cp_wfun(Zdata,W,x,normZsqr,memflag)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Convert x to factor matrices (i.e., a cell array).
@@ -339,13 +327,6 @@ function Zvals = tt_cp_wfg_sparse_setup(Z,W)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 Zsubs = Z.subs;
@@ -376,13 +357,6 @@ function [f,G] = tt_cp_wfg_sparse(Zvals,W,A,normZsqr,memflag)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 %% Set-up

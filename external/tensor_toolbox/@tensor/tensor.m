@@ -10,6 +10,7 @@
 %   end         - Last index of indexing expression for tensor.
 %   eq          - Equal (==) for tensors.
 %   exp         - Exponential for tensors.
+%   fibers      - Extracts specified mode-k fibers and creates matrix.
 %   find        - Find subscripts of nonzero elements in a tensor.
 %   full        - Convert to a (dense) tensor.
 %   ge          - Greater than or equal (>=) for tensors.
@@ -27,16 +28,16 @@
 %   mrdivide    - Slash right division for tensors.
 %   mtimes      - tensor-scalar multiplication.
 %   mttkrp      - Matricized tensor times Khatri-Rao product for tensor.
-%   mttkrps     - Sequence of MTTKRP calculations for dense tensor.
+%   mttkrps     - Sequence of MTTKRP calculations for a tensor.
 %   ndims       - Return the number of dimensions of a tensor.
 %   ne          - Not equal (~=) for tensors.
-%   nnz         - Number of nonzeros for tensors. 
+%   nnz         - Number of nonzeros for tensors.
 %   norm        - Frobenius norm of a tensor.
 %   not         - Logical NOT (~) for tensors.
 %   nvecs       - Compute the leading mode-n vectors for a tensor.
 %   or          - Logical OR (|) for tensors.
 %   permute     - Permute tensor dimensions.
-%   plus        - Binary addition (+) for tensors. 
+%   plus        - Binary addition (+) for tensors.
 %   power       - Elementwise power (.^) operator for a tensor.
 %   rdivide     - Right array divide for tensors.
 %   reshape     - Change tensor size.
@@ -55,173 +56,187 @@
 %   ttt         - Tensor mulitplication (tensor times tensor).
 %   ttv         - Tensor times vector.
 %   uminus      - Unary minus (-) for tensors.
+%   unfold      - Unfold a tensor into a matrix.
 %   uplus       - Unary plus (+) for tensors.
+%   vec         - Vectorize a tensor.
 %   xor         - Logical EXCLUSIVE OR for tensors.
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'tensor_doc.html')))">Documentation page for tensor class</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','tensor_doc.html')))">Documentation page for tensor class</a>
 %
 %   See also TENSOR_TOOLBOX
 %
 %   Reference:
-%   * BW Bader and TG Kolda. Algorithm 862: MATLAB Tensor Classes for Fast
-%     Algorithm Prototyping, ACM Trans Mathematical Software 32:635-653, 2006.
-%     <a href="http://dx.doi.org/10.1145/1186785.1186794"
-%     >DOI:10.1145/1186785.1186794</a>. <a href="matlab:web(strcat('file://',...
-%     fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%     'bibtex.html#TTB_Dense')))">[BibTeX]</a>
+%   * B.W. Bader and T.G. Kolda. Algorithm 862: MATLAB Tensor Classes for
+%     Fast Algorithm Prototyping, ACM Trans. Mathematical Software,
+%     32:635-653, 2006, http://dx.doi.org/10.1145/1186785.1186794.
 %
-%MATLAB Tensor Toolbox. Copyright 2017, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
+classdef tensor
+    properties
+        data
+        size
+    end
+    methods
+        function t = tensor(input, sz)            
+            %TENSOR Create tensor.
+            %
+            %   X = TENSOR(A,SZ) creates a tensor from the multidimensional array A.
+            %   The SZ argument is a size vector specifying the desired shape
+            %   of A.
+            %
+            %   X = TENSOR(F,SZ) createa a tensor of size SZ using the function
+            %   handle F to create the data. The function F must take a size vector as
+            %   input.
+            %
+            %   X = TENSOR(A) creates a tensor from the multidimensional array A, using
+            %   SZ = size(A).
+            %
+            %   X = TENSOR(S) copies a tensor S.
+            %
+            %   X = TENSOR(A) converts an sptensor, ktensor, ttensor, or tenmat object
+            %   to a tensor.
+            %
+            %   X = TENSOR creates an empty, dense tensor object.
+            %
+            %   Examples:
+            %       X = tensor(rand(3, 4, 2)); % Tensor of size 3 x 4 x 2
+            %       X = tensor(@rand, [3 4 2]); % Equivalent
+            %       Y = tensor(zeros(3, 1), 3); % Tensor of size 3
+            %       Y = tensor(@zeros, [3 1]);
+            %       Z = tensor(ones(12, 1), [3 4 1]); % Tensor of size 3 x 4 x 1
+            %       Z = tensor(@ones, [3 4 1]); % Equivalent
+            %
+            %   See also TENSOR, TENSOR/NDIMS.
+            %
+            %Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
+            arguments
+                input = [] % Input data or function handle
+                sz = [] % Size of tensor
+            end
 
+            % EMPTY/DEFAULT CONSTRUCTOR
+            if isempty(input) && isempty(sz)
+                t.data = [];
+                t.size = [];
+                return;
+            end
 
-function t = tensor(varargin)
-%TENSOR Create tensor.
-%
-%   X = TENSOR(A,SIZ) creates a tensor from the multidimensional array A.
-%   The SIZ argument is a size vector specifying the desired shape 
-%   of A.
-%
-%   X = TENSOR(F,SIZ) createa a tensor of size SIZ using the function
-%   handle F to create the data. The function F must take a size vector as
-%   input. 
-%
-%   X = TENSOR(A) creates a tensor from the multidimensional array A, using
-%   SIZ = size(A). 
-%
-%   X = TENSOR(S) copies a tensor S.
-%
-%   X = TENSOR(A) converts an sptensor, ktensor, ttensor, or tenmat object
-%   to a tensor.  
-%
-%   X = TENSOR creates an empty, dense tensor object.
-%
-%   Examples
-%   X = tensor(rand(3,4,2)) %<-- Tensor of size 3 x 4 x 2
-%   X = tensor(@rand, [3 4 2]) %<-- Equivalent
-%   Y = tensor(zeros(3,1),3) %<-- Tensor of size 3
-%   Y = tensor(@zeros, [3 1]);
-%   Z = tensor(ones(12,1),[3 4 1]) %<-- Tensor of size 3 x 4 x 1
-%   Z = tensor(@ones, [3 4 1]) %<-- Equivalent
-%
-%   See also TENSOR, TENSOR/NDIMS.
-%
-%MATLAB Tensor Toolbox. Copyright 2017, Sandia Corporation.
-
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
-
-
-% EMPTY/DEFAULT CONSTRUCTOR
-if nargin == 0
-    t.data = [];
-    t.size = [];
-    t = class(t, 'tensor');
-    return;
-end
-
-% CONVERSION/COPY CONSTRUCTORS
-% Note that we pass through this if/switch statement if the first argument
-% is not any of these cases.
-if (nargin == 1)
-    v = varargin{1};
-    switch class(v)
-        case 'tensor',   
-            % COPY CONSTRUCTOR
-            t.data = v.data;
-            t.size = v.size;
-            t = class(t, 'tensor');
-            return;
-        case {'ktensor','ttensor','sptensor','sumtensor','symtensor','symktensor'},  
-            % CONVERSION
-            t = full(v);
-            return;
-        case 'tenmat', 
-            % RESHAPE TENSOR-AS-MATRIX
-            % Here we just reverse what was done in the tenmat constructor.
-            % First we reshape the data to be an MDA, then we un-permute
-            % it using ipermute.
-            sz = tsize(v);
-            order = [v.rdims,v.cdims];
-            data = reshape(v.data, [sz(order) 1 1]);
-            if numel(order) >= 2
-                t.data = ipermute(data,order);
+            % Adapt to work with derived classes
+            tmp = superclasses(input);
+            if isempty(tmp)
+                class_input = class(input);
             else
-                t.data = data;
-            end              
-            t.size = sz;
-            t = class(t, 'tensor');
+                class_input = tmp{1};
+            end
+
+            switch class_input
+                
+                case 'function_handle'
+                    % FUNCTION HANDLE AND SIZE
+                    fh = input;
+
+                    % Check size
+                    if ~isvector(sz)
+                        error('Argument ''sz'' must be a vector');
+                    end
+                    if ~isrow(sz)
+                        sz = sz';
+                    end
+
+                    % Generate data
+                    t.data = fh([sz 1]);
+                    t.size = sz;
+
+                case 'tensor'
+                    % COPY CONSTRUCTOR
+                    t.data = input.data;
+                    t.size = input.size;
+
+                case {'ktensor','ttensor','sptensor','sumtensor','symtensor','symktensor'}
+                    % CONVERSION
+                    t = full(input);
+
+                case 'tenmat'
+                    % RESHAPE TENSOR-AS-MATRIX
+                    % Here we just reverse what was done in the tenmat constructor.
+                    % First we reshape the data to be an MDA, then we un-permute
+                    % it using ipermute.
+                    isz = tsize(input);
+                    order = [input.rdims,input.cdims];
+                    data = reshape(input.data, [isz(order) 1 1]);
+                    if numel(order) >= 2
+                        t.data = ipermute(data,order);
+                    else
+                        t.data = data;
+                    end
+                    t.size = isz;
+
+                otherwise
+
+                    if isnumeric(input) || islogical(input)
+                        % CONVERT A MULTIDIMENSIONAL ARRAY
+
+                        if isempty(sz)
+                            sz = size(input);
+                        elseif ~isvector(sz)
+                            error('Argument ''sz'' must be a vector.');
+                        elseif ~isrow(sz)
+                            sz = sz';
+                        end
+
+                        t.data = input;
+                        t.size = sz;
+
+                    else
+
+                        error('Unsupported use of function TENSOR.');
+                    end
+            end
+
+            if isempty(t.size)
+                if ~isempty(t.data)
+                    error('Size is empty but data is not');
+                end
+
+            else
+                if prod(t.size) ~= numel(t.data)
+                    error('Number of elements in ''input'' does not match ''sz''.');
+                end
+                
+                % Make sure the data is indeed the right shape
+                t.data = reshape(t.data,[t.size 1]);
+
+            end
+
             return;
-    end
-end
 
-% FUNCTION HANDLE AND SIZE
-if (nargin <= 2) && isa(varargin{1},'function_handle')
-    fh = varargin{1};
-    siz = varargin{2};
-    
-    % Check size
-    if ~isrow(siz)
-        error('TTB:BadInput', 'Size must be a row vector');
-    end
-    
-    % Generate data
-    data = fh([siz 1 1]);
-        
-    % Create the tensor
-    t.data = data;
-    t.size = siz;
-    t = class(t, 'tensor');
-    return;
-end
+        end % constructor
 
-% CONVERT A MULTIDIMENSIONAL ARRAY
-if (nargin <= 2)
+        function s = saveobj(obj)
+            %SAVEOBJ Save tensor for MAT-file.
+            %   S = SAVEOBJ(OBJ) saves the tensor object OBJ for use with
+            %   the LOAD function. The output S is a structure with fields
+            %   'data' and 'size', which contain the data and size of the
+            %   tensor, respectively. This is used to ensure compatibility
+            %   with future versions of the Tensor Toolbox.
+            s.data = obj.data;
+            s.size = obj.size;
+        end
 
-    % Check first argument
-    data = varargin{1};
-    if ~isa(data,'numeric') && ~isa(data,'logical')
-        error('First argument must be a multidimensional array.')
     end
 
-    % Create or check second argument
-    if nargin == 1
-        siz = size(data);
-    else
-        siz = varargin{2};
-        if ~isempty(siz) && ndims(siz) ~= 2 && size(siz,1) ~= 1
-            error('Second argument must be a row vector.');
+    methods (Static)
+        function obj = loadobj(s)
+            %LOADOBJ Load tensor from MAT-file.
+            %   OBJ = LOADOBJ(S) loads a tensor object from the structure S
+            %   created by the SAVEOBJ method. The structure S must contain
+            %   fields 'data' and 'size', which are used to reconstruct the
+            %   tensor object.
+            if isstruct(s)
+                obj = tensor(s.data,s.size);
+            else
+                obj = s;
+            end
         end
     end
-
-    % Make sure the number of elements matches what's been specified
-    if isempty(siz)
-        if ~isempty(data)
-            error('Empty tensor cannot contain any elements');
-        end
-    elseif prod(siz) ~= numel(data)
-        error('TTB:WrongSize', 'Size of data does not match specified size of tensor');
-    end
-    
-    % Make sure the data is indeed the right shape
-    if ~isempty(data) && ~isempty(siz)
-        data = reshape(data,[siz 1 1]);
-    end
-
-    % Create the tensor
-    t.data = data;
-    t.size = siz;
-    t = class(t, 'tensor');
-    return;
-
 end
-
-
-error('Unsupported use of function TENSOR.');
-
-

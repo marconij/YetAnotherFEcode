@@ -1,4 +1,13 @@
-%% Symmetric Kruskal tensors
+%% Symmetric Kruskal Tensors
+%
+% <html>
+% <p class="navigate">
+% &#62;&#62; <a href="index.html">Tensor Toolbox</a> 
+% &#62;&#62; <a href="tensor_types.html">Tensor Types</a> 
+% &#62;&#62; <a href="symktensor_doc.html">Symmetric Kruskal Tensors</a>
+% </p>
+% </html>
+%
 % A symmetric Kruskal tensor is a decomposition of a tensor into a sum of
 % vector outer products. The symmetric structure means that each term in 
 % the summand is the outer product of a single vector with itself $m$ times, 
@@ -71,6 +80,7 @@ S2 = symktensor(X, m, r, true)
 % factor matrix has elements drawn uniformly from (0,1).
 T1 = tensor(n*ones(1,m)); %<-- Declare a tensor for size
 T2 = symtensor(@ones, n,m); %<-- Declare a symtensor for size
+rng('default'); %<- Setting random seed for reproducibility of this script
 
 S2 = symktensor(r, T1) %<--Declare a random symktensor from tensor for size
 S2 = symktensor(r, T2) %<--Declare a random symktensor from symtensor for size

@@ -1,10 +1,10 @@
 function U = create_guess(varargin)
 %CREATE_GUESS Creates initial guess for CP or Tucker fitting.
 %
-%  U = CREATE_GUESS('Param',value,...) creates an initial guess at the
-%  factor matrices for a CP or Tucker decomposition. The factors can be
-%  generated randomly, random orthogonal, etc. If the tensor is provided,
-%  it can be alternatively generated via the HO-SVD. 
+%   U = CREATE_GUESS('Param',value,...) creates an initial guess at the
+%   factor matrices for a CP or Tucker decomposition. The factors can be
+%   generated randomly, random orthogonal, etc. If the tensor is provided,
+%   it can be alternatively generated via the HO-SVD. 
 %
 %   --- Parameters ---
 %
@@ -46,13 +46,11 @@ function U = create_guess(varargin)
 %   'State' - State of the random number generator. This can be used
 %   to reproduce results.
 %
-%   <a href="matlab:web(strcat('file://',...
-%   fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html',...
-%   'test_problems_doc.html')))">Documentation page for creating test problems</a>
+%   <a href="matlab:web(strcat('file://',fullfile(getfield(what('tensor_toolbox'),'path'),'doc','html','test_problems_doc.html')))">Documentation page for creating test problems</a>
 %
 %   See also CREATE_PROBLEM.
 %
-%MATLAB Tensor Toolbox. Copyright 2018, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
 
 %% Random set-up

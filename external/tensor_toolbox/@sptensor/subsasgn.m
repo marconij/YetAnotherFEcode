@@ -1,5 +1,5 @@
 function t = subsasgn(t,s,rhs)
-%SUBSASGN Subscripted assignment for sparse tensor.
+%SUBSASGN Subscripted assignment for sptensor.
 %
 %   We can assign elements to a sptensor in three ways.
 %
@@ -11,7 +11,7 @@ function t = subsasgn(t,s,rhs)
 %   Case 2: X(S) = V, where S is a p x n array of subscripts and V is
 %   a scalar value or a vector containing p values.
 %
-%   Linear indexing is not supported for sparse tensors.
+%   Linear indexing is not supported for sptensors.
 %
 %   Examples
 %   X = sptensor([30 40 20]) %<-- Create an emtpy 30 x 40 x 20 sptensor
@@ -34,16 +34,8 @@ function t = subsasgn(t,s,rhs)
 %
 %   See also SPTENSOR, TENSOR/SUBSASGN.
 %
-%MATLAB Tensor Toolbox.
-%Copyright 2015, Sandia Corporation.
+%Tensor Toolbox for MATLAB: <a href="https://www.tensortoolbox.org">www.tensortoolbox.org</a>
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 
@@ -65,7 +57,7 @@ switch s.type
         %% Case I: Replace a sub-tensor
         if isequal(type,'subtensor')
 
-            %% Case I(a): RHS is another sparse tensor
+            %% Case I(a): RHS is another sptensor
             if isa(rhs,'sptensor')
 
                 %% First, Resize the tensor and check the size match with
@@ -143,7 +135,7 @@ switch s.type
             end
 
             % Case I(b)i: Zero right-hand-side
-            if numel(rhs) == 1 && rhs == 0
+            if issparse(t) && isscalar(rhs) && rhs == 0
 
                 % Delete what currently occupies the specified range
                 rmloc = subdims(s.subs,t);
@@ -226,7 +218,7 @@ switch s.type
             newvals = rhs;
 
             % Error check the RHS is a column vector. We do not bother to
-            % handle any other type of RHS with the sparse tensor.
+            % handle any other type of RHS with the sptensor.
             tt_valscheck(newvals);
 
             % Determine number of nonzeros being inserted. (This is
@@ -235,7 +227,7 @@ switch s.type
             newnnz = size(newsubs,1);
 
             % Error check on size of newvals
-            if numel(newvals) == 1
+            if isscalar(newvals)
 
                 % Special case where newvals is a single element to be
                 % assigned to multiple RHS. Fix to be correct size.
@@ -271,9 +263,15 @@ switch s.type
             % processing of Group B may change the locations of the
             % remaining elements.
 
-            idxa = find((tf .* newvals) ~= 0);
-            idxb = find((tf .* ~abs(newvals)) ~= 0);
-            idxc = find((~tf .* newvals) ~= 0);
+            if issparse(t)
+                idxa = find((tf .* newvals) ~= 0);
+                idxb = find((tf .* ~abs(newvals)) ~= 0);
+                idxc = find((~tf .* newvals) ~= 0);
+            else
+                idxa = find(tf);
+                idxb = [];
+                idxc = find(~tf);
+            end
 
             % Process Group A: Changing values
             if ~isempty(idxa)
@@ -320,13 +318,6 @@ function type = tt_assignment_type(x,subs,rhs)
 %MATLAB Tensor Toolbox.
 %Copyright 2015, Sandia Corporation.
 
-% This is the MATLAB Tensor Toolbox by T. Kolda, B. Bader, and others.
-% http://www.sandia.gov/~tgkolda/TensorToolbox.
-% Copyright (2015) Sandia Corporation. Under the terms of Contract
-% DE-AC04-94AL85000, there is a non-exclusive license for use of this
-% work by or on behalf of the U.S. Government. Export of this data may
-% require a license from the United States Government.
-% The full license terms can be found in the file LICENSE.txt
 
 
 if isequal(class(x),class(rhs))
